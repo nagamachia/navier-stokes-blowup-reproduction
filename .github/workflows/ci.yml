@@ -37,9 +37,10 @@ jobs:
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
         run: |
           mkdir -p results/reference results/figures reports
+          rm -rf results/reference/taylor_green_3d_series
           ./build/fftw_taylor_green 16 0.1 0.005 0.1 results/reference/taylor_green_n16.csv
           ./build/taylor_green_snapshots 32 0.1 0.0025 0.1 results/reference/taylor_green_numerical_snapshots_n32.csv
-          ./build/fftw_taylor_green_3d 24 0.5 0.002 0.01 results/reference/taylor_green_3d_snapshots_n24.csv 21
+          ./build/fftw_taylor_green_3d 24 0.5 0.002 0.01 results/reference/taylor_green_3d_snapshots_n24.csv 11 /tmp/taylor_green_3d_full_n24.csv
           ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
@@ -50,13 +51,16 @@ jobs:
             results/reference/taylor_green_numerical_snapshots_n32.csv
           python3 scripts/generate_taylor_green_3d_gif.py \
             results/reference/taylor_green_3d_snapshots_n24.csv
+          python3 scripts/generate_taylor_green_3d_series.py \
+            /tmp/taylor_green_3d_full_n24.csv \
+            results/reference/taylor_green_3d_series
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f results/reference/*.csv results/reference/*.vtk results/figures/*.svg results/figures/*.gif reports/*.md
+          git add -f results/reference/*.csv results/reference/*.vtk results/reference/taylor_green_3d_series/*.vtk results/reference/taylor_green_3d_series/manifest.json results/figures/*.svg results/figures/*.gif reports/*.md
           if git diff --cached --quiet; then
             echo "No generated result changes"
             exit 0
