@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 420">
+<rect width="100%" height="100%" fill="white"/>
+<text x="85" y="32" font-family="sans-serif" font-size="22" font-weight="700">3D Taylor–Green: max vorticity on central slices</text>
+<line x1="85" y1="55.00" x2="830" y2="55.00" stroke="#e5e7eb"/>
+<text x="75" y="60.00" text-anchor="end" font-family="sans-serif" font-size="12">2.16</text>
+<line x1="85" y1="115.00" x2="830" y2="115.00" stroke="#e5e7eb"/>
+<text x="75" y="120.00" text-anchor="end" font-family="sans-serif" font-size="12">1.73</text>
+<line x1="85" y1="175.00" x2="830" y2="175.00" stroke="#e5e7eb"/>
+<text x="75" y="180.00" text-anchor="end" font-family="sans-serif" font-size="12">1.3</text>
+<line x1="85" y1="235.00" x2="830" y2="235.00" stroke="#e5e7eb"/>
+<text x="75" y="240.00" text-anchor="end" font-family="sans-serif" font-size="12">0.864</text>
+<line x1="85" y1="295.00" x2="830" y2="295.00" stroke="#e5e7eb"/>
+<text x="75" y="300.00" text-anchor="end" font-family="sans-serif" font-size="12">0.432</text>
+<line x1="85" y1="355.00" x2="830" y2="355.00" stroke="#e5e7eb"/>
+<text x="75" y="360.00" text-anchor="end" font-family="sans-serif" font-size="12">0</text>
+<polyline points="85.00,77.22 106.37,77.35 143.01,77.64 182.70,78.04 219.34,78.49 259.04,79.06 295.68,79.67 335.37,80.41 372.01,81.18 411.70,82.09 448.34,83.00 488.03,84.07 524.67,85.12 564.36,86.34 601.00,87.54 640.70,88.90 677.34,90.22 717.03,91.73 753.67,93.17 793.36,94.80 830.00,96.36" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+<line x1="85" y1="355" x2="830" y2="355" stroke="#111827"/>
+<line x1="85" y1="55" x2="85" y2="355" stroke="#111827"/>
+<text x="457.5" y="402" text-anchor="middle" font-family="sans-serif" font-size="14">time t</text>
+</svg>
