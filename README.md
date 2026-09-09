@@ -79,6 +79,24 @@ while
 
 The velocity scale therefore grows as `tau -> 0`, while this core-energy estimate decreases.
 
+## Solver verification
+
+CTest currently covers the verification sequence in `docs/roadmap.md`:
+
+1. Fourier differentiation on a periodic trigonometric function.
+2. Spectral divergence-free projection, including idempotence and non-increasing modal energy.
+3. 2/3 dealiasing using a deliberately aliased quadratic product.
+4. Viscous decay of an incompressible Fourier mode against its analytic decay law.
+5. A small 3D direct-DFT pseudo-spectral Taylor–Green regression using RK4, projection, rotational-form nonlinearity, and 2/3 dealiasing.
+
+The direct DFT implementation is intentionally tiny and auditable; it is a verification reference rather than the solver intended for 64^3 and larger runs. The next implementation target is an FFTW-backed solver that preserves the same spectral conventions and regression checks.
+
+Run all checks with
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
 ## What counts as success?
 
 The first milestone is deliberately modest: reproduce predicted pre-singular scaling over an increasing time interval as numerical resolution increases. A finite-resolution computation cannot demonstrate an actual infinite velocity at the singular time.
@@ -94,5 +112,6 @@ Theory/source notes are maintained in `docs/theory.md`. Exact similarity profile
 ## Status
 
 - **Step 1:** initial auditable theory extraction complete; exact PDF equation-number pinning remains before full-profile implementation.
-- **Step 2:** minimal core-scaling executable added.
-- **Next:** run and validate the executable locally, then add a tiny automated regression test before introducing FFTW or a PDE solver.
+- **Step 2:** minimal core-scaling executable and regression check complete.
+- **Step 3:** all five solver-verification checks in `docs/roadmap.md` are implemented and passing in CI using an auditable direct-DFT reference implementation.
+- **Next:** replace the O(N^6) reference transforms with FFTW for practical 64^3 resolution studies while preserving the verified projection, dealiasing, viscous, and Taylor–Green behavior.
