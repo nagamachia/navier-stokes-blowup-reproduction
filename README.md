@@ -37,7 +37,7 @@ OpenAI 論文の式 (3.2)/(4.1) に対応して
 
 を扱います。`include/similarity_coordinates.hpp` には、与えられた `(z, tau)` から
 
-`q - z^2 / q^(2h) = tau`
+`q - z^2 q^(2h) = tau`
 
 を数値的に解く実装があります。`tests/similarity_coordinates.cpp` で元の恒等式へ戻ることを回帰テストしています。
 
@@ -126,6 +126,7 @@ CSV には以下を出力します。
 - `docs/theory.md`: 論文から抽出した数式・式番号・実装境界
 - `docs/roadmap.md`: 開発順序
 - `docs/resolution-study.md`: 解像度実験手順
+- `docs/progress.md`: 実装済み範囲と次の対象
 - `reports/latest.md`: CI が生成する最新数値レポート
 
 以後、説明文書と自動レポートは原則として日本語で管理します。
