@@ -90,17 +90,23 @@ main 更新時に GitHub Actions が軽量な基準計算を自動実行し、�
 - 生データ: `results/reference/`
 - 可視化: `results/figures/`
 - 最新レポート: [reports/latest.md](reports/latest.md)
+- 流れ可視化レポート: [reports/flow-visualization.md](reports/flow-visualization.md)
 
-Taylor–Green は `z=0` 断面について、流れそのものも可視化します。
+Taylor–Green は解析式の図に加えて、FFTW + RK4 で実際に時間積分した数値格子場も保存・可視化します。
 
-- `results/figures/taylor_green_velocity_field.svg` — 速度の大きさ + ベクトル
-- `results/figures/taylor_green_streamlines.svg` — 流線
-- `results/figures/taylor_green_vorticity.svg` — 渦度 `omega_z`
+- `results/reference/taylor_green_numerical_snapshots_n32.csv` — 5時刻の数値速度・渦度・解析解・点wise誤差
+- `results/figures/taylor_green_numerical_evolution.svg` — 数値渦度 + 数値速度ベクトルの時間発展
+- `results/figures/taylor_green_velocity_error_field.svg` — 数値解と解析解の速度誤差分布
+- `results/figures/taylor_green_velocity_error_history.svg` — 最大誤差 / RMS誤差の時間推移
+- `results/reference/taylor_green_numerical_n32.vtk` — ParaView 用数値格子場 (`velocity`, `omega_z`, `velocity_error`)
+- `results/figures/taylor_green_velocity_field.svg` — 解析基準の速度の大きさ + ベクトル
+- `results/figures/taylor_green_streamlines.svg` — 解析基準の流線
+- `results/figures/taylor_green_vorticity.svg` — 解析基準の渦度 `omega_z`
 - `results/figures/taylor_green_energy.svg` — エネルギー・エンストロフィー
 - `results/figures/taylor_green_errors.svg` — 数値誤差診断
 - `results/figures/similarity_coordinate_error.svg` — 類似座標誤差
 
-最新レポートにも速度場・流線・渦度図を埋め込みます。
+ParaView では数値 VTK を開き、Slice / Glyph / Stream Tracer を使って速度・渦度・誤差を3Dで確認できます。
 
 ## FFTW 解像度実験
 
@@ -108,6 +114,12 @@ Taylor–Green は `z=0` 断面について、流れそのものも可視化し�
 
 ```bash
 ./build/fftw_taylor_green 64 0.1 0.001 0.1 taylor_green_64.csv
+```
+
+数値 snapshot exporter の例:
+
+```bash
+./build/taylor_green_snapshots 32 0.1 0.0025 0.1 taylor_green_snapshots.csv
 ```
 
 CSV には最大速度、最大渦度、運動エネルギー、エンストロフィー、粘性散逸、発散 L2、離散 PDE 残差、射影後非線形項 L2、時間刻み、CFL を出力します。
@@ -122,6 +134,7 @@ CSV には最大速度、最大渦度、運動エネルギー、エンストロ�
 - `docs/resolution-study.md`: 解像度実験手順
 - `docs/progress.md`: 実装済み範囲と次の対象
 - `reports/latest.md`: CI が生成する最新数値レポート
+- `reports/flow-visualization.md`: Taylor–Green の数値流れ可視化レポート
 
 説明文書と自動レポートは原則として日本語で管理します。
 
@@ -130,7 +143,7 @@ CSV には最大速度、最大渦度、運動エネルギー、エンストロ�
 - **Step 1:** 類似座標、微分作用素、leading field、非圧縮条件、圧力、leading stress、active annulus、最終 forcing 構成まで式番号付きで抽出を継続中。
 - **Step 2:** コアスケーリング実験済み。
 - **Step 3:** 擬スペクトルソルバの5段階検証を完了。
-- **Step 4 基盤:** FFTW 版 3D 実行系、CSV診断、SVG可視化、自動レポート生成を実装済み。
+- **Step 4 基盤:** FFTW 版 3D 実行系、CSV診断、数値格子snapshot、SVG可視化、VTK、自動レポート生成を実装済み。
 - **論文構成の汎用数値部品:** 式 (3.2)/(4.1)、(4.2)、(4.4)–(4.11) まで実装・回帰中。
 - **次の大きな対象:** Theorem 4.6 と Appendices A/B の constructive profile `E,U,Pi`。ここからは実際の profile construction を数値化し、任意の surrogate を OpenAI 構成として扱わない。
 
