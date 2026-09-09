@@ -42,6 +42,8 @@ jobs:
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
+          python3 scripts/generate_taylor_green_flow.py \
+            results/reference/taylor_green_n16.csv 0.1
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
