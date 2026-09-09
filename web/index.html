@@ -5,29 +5,25 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Navier–Stokes Web Viewer</title>
   <style>
-    :root{color-scheme:dark;background:#0b1020;color:#eef2ff;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}header{padding:14px 16px;background:#111827;border-bottom:1px solid #334155}h1{font-size:18px;margin:0 0 4px}.sub{font-size:12px;color:#94a3b8}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:#0f172a}.controls label{font-size:12px;color:#cbd5e1}.controls select,.controls input{width:100%;margin-top:4px;min-height:40px}#viewport{height:62vh;min-height:360px;touch-action:none}.status{padding:8px 12px;font-size:12px;line-height:1.5;color:#cbd5e1;background:#111827}.info{padding:12px 16px;font-size:13px;line-height:1.6;color:#cbd5e1}.info img{max-width:100%;border-radius:8px;margin-top:8px}@media(max-width:520px){.controls{grid-template-columns:1fr}#viewport{height:58vh}}
+    :root{color-scheme:dark;background:#0b1020;color:#eef2ff;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}header{padding:14px 16px;background:#111827;border-bottom:1px solid #334155}h1{font-size:18px;margin:0 0 4px}.sub{font-size:12px;color:#94a3b8}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:#0f172a}.controls label{font-size:12px;color:#cbd5e1}.controls select,.controls input,.controls button{width:100%;margin-top:4px;min-height:40px}.timeline{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:end}.timeline button{width:78px}.timeline label{min-width:0}.status{padding:8px 12px;font-size:12px;line-height:1.5;color:#cbd5e1;background:#111827}.info{padding:12px 16px;font-size:13px;line-height:1.6;color:#cbd5e1}.info img{max-width:100%;border-radius:8px;margin-top:8px}@media(max-width:520px){.controls{grid-template-columns:1fr}.timeline{grid-template-columns:72px 1fr}#viewport{height:58vh}}#viewport{height:62vh;min-height:360px;touch-action:none}
   </style>
   <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-      }
-    }
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
 </head>
 <body>
-<header><h1>Taylor–Green Web Viewer</h1><div class="sub">Android の Chrome から速度・渦度・Q-criterion を直接確認できます</div></header>
+<header><h1>Taylor–Green Web Viewer</h1><div class="sub">Android の Chrome から速度・渦度・Q-criterion と3D時間発展を確認できます</div></header>
 <section class="controls">
-  <label>データ<select id="dataset"><option value="data/taylor_green_numerical_n32.vtk">Taylor–Green numerical N=32</option><option value="data/taylor_green_reference_n16.vtk">Taylor–Green reference N=16</option></select></label>
+  <label>データ<select id="dataset"><option value="data/taylor_green_3d_series/manifest.json">3D Taylor–Green N=24 time series</option><option value="data/taylor_green_numerical_n32.vtk">Taylor–Green numerical N=32</option><option value="data/taylor_green_reference_n16.vtk">Taylor–Green reference N=16</option></select></label>
   <label>表示<select id="mode"><option value="velocity">速度ベクトル |u|</option><option value="vorticity">渦度強度 |ω|</option><option value="qcriterion">Q-criterion (Q &gt; 0)</option></select></label>
   <label>間引き <span id="strideValue">4</span><input id="stride" type="range" min="1" max="8" value="4" step="1" /></label>
   <label>ベクトル倍率 <span id="scaleValue">0.35</span><input id="scale" type="range" min="0.05" max="1.5" value="0.35" step="0.05" /></label>
   <label>強い領域の表示割合 <span id="thresholdValue">20</span>%<input id="threshold" type="range" min="5" max="100" value="20" step="5" /></label>
+  <div class="timeline"><button id="play" type="button" disabled>▶ 再生</button><label>時刻 <span id="timeValue">—</span><input id="time" type="range" min="0" max="0" value="0" step="1" disabled /></label></div>
 </section>
 <div id="status" class="status">読み込み中…</div>
 <div id="viewport" aria-label="3D flow-field viewer"></div>
-<section class="info">速度表示では1本の線が各格子点の速度ベクトルです。渦度と Q-criterion は周期境界の中心差分で速度勾配を求め、強い領域を点群表示します。Q &gt; 0 は回転がひずみより優勢な領域の指標です。1本指ドラッグで回転、ピンチで拡大縮小できます。元の ParaView 用 VTK は <code>results/reference/</code> に保持されます。<br><img src="figures/taylor_green_3d.gif" alt="Taylor-Green vortex time evolution GIF" onerror="this.style.display='none'" /></section>
+<section class="info">3D時系列では全格子スナップショットを時刻別 VTK として配信し、スライダーまたは再生ボタンで切り替えます。速度表示はベクトル、渦度と Q-criterion は速度勾配から計算した強い領域の点群です。1本指ドラッグで回転、ピンチで拡大縮小できます。元の ParaView 用 VTK は <code>results/reference/</code> に保持されます。<br><img src="figures/taylor_green_3d_evolution.gif" alt="Taylor-Green vortex time evolution GIF" onerror="this.style.display='none'" /></section>
 <script type="module" src="./viewer.js"></script>
 </body>
 </html>
