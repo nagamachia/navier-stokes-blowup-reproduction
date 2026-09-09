@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -25,3 +28,26 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+      - name: Generate reference experiment artifacts
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          mkdir -p results/reference results/figures reports
+          ./build/fftw_taylor_green 16 0.1 0.005 0.1 results/reference/taylor_green_n16.csv
+          ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
+          python3 scripts/generate_artifacts.py \
+            results/reference/taylor_green_n16.csv \
+            results/reference/similarity_coordinates.csv
+
+      - name: Commit generated results
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f results/reference/*.csv results/figures/*.svg reports/latest.md
+          if git diff --cached --quiet; then
+            echo "No generated result changes"
+            exit 0
+          fi
+          git commit -m "results: update reference experiment artifacts [skip ci]"
+          git push
