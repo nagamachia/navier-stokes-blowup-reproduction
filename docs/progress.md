@@ -23,6 +23,14 @@
 - Lemma 4.1, 式 (4.2): `T_b`, `Z_b`
   - 作用素を実装
   - manufactured profile を使い、物理座標の中心有限差分 `partial_t`, `partial_z` と比較する回帰テストを実装
+- 式 (4.6)–(4.7): `A_X`, `V0`, `Pi`
+  - composite Simpson 積分による radial average を実装
+  - `U`, `partial_eta U` から非圧縮条件の `V0` を再構成
+  - 軸正則形 `E=sqrt(2X)F` を使い、`Pi_X=F^2` と無限遠規格化を有限区間積分で実装
+  - polynomial / exponential manufactured profile で回帰テストを実装
+- 式 (4.8)–(4.11): leading stress
+  - PDF から式を抽出し `docs/leading-stress.md` に整理済み
+  - 数値実装は次の対象
 
 ### 数式監査で検出した修正
 
@@ -51,21 +59,22 @@ main 更新時に軽量基準計算を実行し、次を GitHub に残す。
 
 ## 次の実装対象
 
-式 (4.6)–(4.7) の
+`docs/leading-stress.md` に抽出した式 (4.8)–(4.11) の
 
-- radial average `A_X`
-- 非圧縮条件から決まる `V0`
-- pressure relation `partial_X Pi = E^2/(2X)`
+- `H,F,l,W,H_c`
+- source `S_q,S_n`
+- smooth radial integrals `Q_s,N_s`
+- `p_s`, shear `(a,-b_s)`, stress `T_0`
 
-を、まず manufactured profile で検証可能な数値部品として実装する。
+を generic smooth profile に対して実装し、ODE identity と軸上極限を manufactured profile で検証する。
 
-ただし exact `E,U` は単純な閉形式ではないため、Theorem 4.6 と Appendices A/B の constructive profile を無視して適当な代替関数を OpenAI 構成として扱わない。
+exact `E,U` は単純な閉形式ではないため、Theorem 4.6 と Appendices A/B の constructive profile を無視して適当な代替関数を OpenAI 構成として扱わない。
 
 ## その後
 
-1. 軸上正則性 (4.4)–(4.5)
-2. 式 (4.8)–(4.11) の leading stress の詳細抽出
-3. active annulus
+1. 軸上正則性 (4.4)–(4.5) の Cartesian 回帰
+2. Theorem 4.6 / Appendices A–B の constructive profile 数値化
+3. active annulus の stress cone
 4. Sections 6–7 の oscillatory pulse
 5. Propositions 7.5–7.6 の stress realization
 6. 残差改善
