@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Navier–Stokes Web Viewer</title>
+  <style>
+    :root{color-scheme:dark;background:#0b1020;color:#eef2ff;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}header{padding:14px 16px;background:#111827;border-bottom:1px solid #334155}h1{font-size:18px;margin:0 0 4px}.sub{font-size:12px;color:#94a3b8}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:#0f172a}.controls label{font-size:12px;color:#cbd5e1}.controls select,.controls input{width:100%;margin-top:4px;min-height:40px}#viewport{height:62vh;min-height:360px;touch-action:none}.status{padding:8px 12px;font-size:12px;color:#cbd5e1;background:#111827}.info{padding:12px 16px;font-size:13px;line-height:1.6;color:#cbd5e1}.info img{max-width:100%;border-radius:8px;margin-top:8px}@media(max-width:520px){.controls{grid-template-columns:1fr}#viewport{height:58vh}}
+  </style>
+</head>
+<body>
+<header><h1>Taylor–Green Web Viewer</h1><div class="sub">Android の Chrome から VTK 速度場を直接確認できます</div></header>
+<section class="controls">
+  <label>データ<select id="dataset"><option value="data/taylor_green_numerical_n32.vtk">Taylor–Green numerical N=32</option><option value="data/taylor_green_reference_n16.vtk">Taylor–Green reference N=16</option></select></label>
+  <label>間引き <span id="strideValue">4</span><input id="stride" type="range" min="1" max="8" value="4" step="1" /></label>
+  <label>ベクトル倍率 <span id="scaleValue">0.35</span><input id="scale" type="range" min="0.05" max="1.5" value="0.35" step="0.05" /></label>
+</section>
+<div id="status" class="status">読み込み中…</div>
+<div id="viewport" aria-label="3D velocity field viewer"></div>
+<section class="info">1本の線が各格子点の速度ベクトルです。1本指ドラッグで回転、ピンチで拡大縮小できます。表示は軽量化のため格子点を間引いています。元の ParaView 用 VTK ファイルは GitHub の <code>results/reference/</code> に保持されます。<br><img src="figures/taylor_green_3d.gif" alt="Taylor-Green vortex time evolution GIF" onerror="this.style.display='none'" /></section>
+<script type="module" src="./viewer.js"></script>
+</body>
+</html>
