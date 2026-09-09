@@ -1,13 +1,15 @@
 # 最新の自動計算レポート
 
-このレポートは GitHub Actions で自動生成されます。対象コミット: `08f9c2ff4645`
+このレポートは GitHub Actions で自動生成されます。対象コミット: `5ddf3756b2bd`
 
-## 実施した計算
+## 実施した計算・回帰
 
 - FFTW 版 Taylor–Green 基準計算
-- OpenAI 論文の式 (3.2)/(4.1) に対応する類似座標 `q, eta, X` の再構成テスト
-- Lemma 4.1, 式 (4.2) の `T_b`, `Z_b` と物理座標有限差分の照合
-- 式 (4.6)–(4.7) の `A_X`, `V0`, `Pi` 数値部品の manufactured-profile 回帰
+- 式 (3.2)/(4.1) の類似座標 `q, eta, X`
+- Lemma 4.1, 式 (4.2) の `T_b`, `Z_b` と物理座標有限差分
+- 式 (4.6)–(4.7) の `A_X`, `V0`, `Pi`
+- 式 (4.8)–(4.11) の leading stress `Q_s,N_s,T_0`
+- 式 (4.4)–(4.5) の Cartesian 軸正則性
 - Fourier 微分・非圧縮射影・2/3 dealiasing・粘性減衰・Taylor–Green 回帰
 
 ## Taylor–Green 基準計算の要約
@@ -37,10 +39,10 @@
 
 ![Similarity coordinate errors](../results/figures/similarity_coordinate_error.svg)
 
-## 解釈
+## 現在地
 
-論文固有の座標変換、Lemma 4.1 の微分作用素、式 (4.6)–(4.7) の radial average・非圧縮 radial flux・pressure integration の汎用数値部品まで実装しています。式 (4.8)–(4.11) の leading stress は `docs/leading-stress.md` に抽出済みです。
+論文固有の類似座標、微分作用素、leading profile の制約式、leading stress、Cartesian 軸正則性までを、exact profile を仮定しない generic numerical kernels と manufactured-profile regression として実装しました。
 
-次の段階は、leading stress の数値部品を manufactured profile で検証し、その後 Theorem 4.6 と Appendices A/B の constructive profile を数値化することです。exact profile `E,U` を任意の surrogate で置き換えて OpenAI 構成と呼ぶことはしません。
+次の大きな境界は Theorem 4.6 と Appendices A/B の constructive profile `E,U,Pi` です。ここから先は任意の surrogate profile を OpenAI 構成として扱わず、論文の構成手順そのものを段階的に数値化します。その後、active annulus の stress cone と Sections 6–7 の oscillatory wave realization に進みます。
 
-CSV の生データは `results/reference/` に保存されています。
+CSV の生データは `results/reference/` に保存されています。実装詳細は `docs/progress.md` と `docs/leading-stress.md` を参照してください。
