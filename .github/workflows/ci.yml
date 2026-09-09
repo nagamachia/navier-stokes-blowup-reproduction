@@ -38,11 +38,14 @@ jobs:
         run: |
           mkdir -p results/reference results/figures reports
           ./build/fftw_taylor_green 16 0.1 0.005 0.1 results/reference/taylor_green_n16.csv
+          ./build/taylor_green_snapshots 32 0.1 0.0025 0.1 results/reference/taylor_green_numerical_snapshots_n32.csv
           ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
-          python3 scripts/generate_taylor_green_evolution.py
+          python3 scripts/generate_taylor_green_flow.py
+          python3 scripts/generate_taylor_green_evolution.py \
+            results/reference/taylor_green_numerical_snapshots_n32.csv
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
