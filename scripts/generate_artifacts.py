@@ -48,10 +48,9 @@ def svg_line_plot(path, title, x_values, series, x_label, y_label, log_y=False):
         for value in values:
             if not math.isfinite(value):
                 continue
-            if log_y:
-                transformed.append(math.log10(max(abs(value), 1e-18)))
-            else:
-                transformed.append(value)
+            transformed.append(
+                math.log10(max(abs(value), 1e-18)) if log_y else value
+            )
     if not transformed:
         transformed = [0.0, 1.0]
     ymin, ymax = min(transformed), max(transformed)
@@ -101,7 +100,8 @@ def svg_line_plot(path, title, x_values, series, x_label, y_label, log_y=False):
                 points.append(f"{sx(x):.2f},{sy(y):.2f}")
         if points:
             color = colors[idx % len(colors)]
-            chunks.append(f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{" ".join(points)}"/>')
+            point_text = " ".join(points)
+            chunks.append(f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{point_text}"/>')
             lx = left + 10 + (idx % 3) * 245
             ly = top + 20 + (idx // 3) * 24
             chunks.append(f'<line x1="{lx}" y1="{ly}" x2="{lx + 30}" y2="{ly}" stroke="{color}" stroke-width="3"/>')
@@ -178,7 +178,8 @@ def generate(taylor_csv, similarity_csv):
 
 - FFTW 版 Taylor–Green 基準計算
 - OpenAI 論文の式 (3.2)/(4.1) に対応する類似座標 `q, eta, X` の再構成テスト
-- CTest による既存の Fourier 微分・非圧縮射影・2/3 dealiasing・粘性減衰・Taylor–Green 回帰
+- Lemma 4.1, 式 (4.2) の `T_b`, `Z_b` と物理座標有限差分の照合
+- Fourier 微分・非圧縮射影・2/3 dealiasing・粘性減衰・Taylor–Green 回帰
 
 ## Taylor–Green 基準計算の要約
 
@@ -209,7 +210,7 @@ def generate(taylor_csv, similarity_csv):
 
 ## 解釈
 
-現在の成果は、Navier–Stokes 爆発構成そのものの再現ではなく、その前提となる座標変換と擬スペクトル計算基盤の検証です。次の実装対象は Lemma 4.1 の微分作用素 `T_b`, `Z_b` と、式 (4.6)–(4.7) に基づく `V0`・`Pi` の構成です。
+現在は、論文固有の座標変換と Lemma 4.1 の微分作用素まで実装しています。次の実装対象は式 (4.6)–(4.7) に基づく radial average `A_X`、`V0`、`Pi` の再構成です。exact profile `E,U` 自体は Theorem 4.6 と Appendices A/B の構成を数値化してから導入します。
 
 CSV の生データは `results/reference/` に保存されています。
 """
