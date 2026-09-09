@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -24,34 +25,37 @@ inline double solve_q(double tau, double z, double h) {
         return tau;
     }
 
+    // From tau = q(1-eta^2), z = q^(1/2-h) eta:
+    //     q - z^2 q^(2h) = tau.
+    // On the physical branch |eta| < 1 the derivative is
+    // 1 - 2 h eta^2 >= 1 - 2h > 0, so the root is unique.
     auto f = [=](double q) {
-        return q - z2 / std::pow(q, 2.0 * h) - tau;
+        return q - z2 * std::pow(q, 2.0 * h) - tau;
     };
 
     double lo = tau;
-    double hi = tau + z2 / std::pow(tau, 2.0 * h) + 1.0;
-    double q = 0.5 * (lo + hi);
+    double hi = std::max({1.0, 2.0 * tau, tau + z2 + 1.0});
+    while (f(hi) <= 0.0) {
+        hi *= 2.0;
+        if (!std::isfinite(hi)) {
+            throw std::runtime_error("failed to bracket similarity-coordinate root");
+        }
+    }
 
-    for (int iter = 0; iter < 100; ++iter) {
-        const double value = f(q);
-        if (value > 0.0) {
+    double q = 0.5 * (lo + hi);
+    for (int iter = 0; iter < 120; ++iter) {
+        q = 0.5 * (lo + hi);
+        if (f(q) > 0.0) {
             hi = q;
         } else {
             lo = q;
         }
-
-        const double derivative =
-            1.0 + 2.0 * h * z2 / std::pow(q, 2.0 * h + 1.0);
-        const double newton = q - value / derivative;
-        const double midpoint = 0.5 * (lo + hi);
-        q = (newton > lo && newton < hi) ? newton : midpoint;
-
         if ((hi - lo) <= 2e-14 * q) {
             break;
         }
     }
 
-    return q;
+    return 0.5 * (lo + hi);
 }
 
 inline SimilarityCoordinates coordinates(
