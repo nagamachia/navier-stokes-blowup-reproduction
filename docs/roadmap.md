@@ -1,72 +1,103 @@
-# Experiment Roadmap
+# 実験ロードマップ
 
-## Design principle
+## 基本原則
 
-Spend mathematical effort before compute. We should not increase grid size until the previous level has a measurable failure caused by resolution rather than by an implementation error.
+計算資源を増やす前に、数学と実装の検証に時間を使う。前段階で観測された誤差が「実装ミス」ではなく「解像度不足」に起因すると判断できるまでは、格子点数を増やさない。
 
-## Step 1 — Auditable theory extraction
+## Step 1 — 監査可能な理論抽出
 
-Deliverable: `docs/theory.md`
+成果物: `docs/theory.md`
 
-For every quantity later implemented, record:
+後で実装する量について、必ず以下を記録する。
 
-- notation used in the paper;
-- section/equation reference;
-- dimensional or nondimensional interpretation;
-- asymptotic scaling as the singular time is approached;
-- whether the expression is exact, asymptotic, or our numerical simplification.
+- 論文中の記号
+- 節・式番号
+- 次元付きか無次元か
+- 特異時刻へ近づくときの漸近スケーリング
+- 厳密式、漸近式、数値簡略化のどれか
 
-No guessed profile should be labeled as the OpenAI construction.
+推測したプロファイルを OpenAI 論文の構成として扱わない。
 
-## Step 2 — Minimal core experiment
+## Step 2 — 最小コア実験
 
-Deliverable: `src/core_scaling.cpp`
+成果物: `src/core_scaling.cpp`
 
-Start without FFTW and without solving Navier–Stokes. Evaluate the extracted similarity/scaling model on a small grid and output CSV diagnostics. This separates understanding of the construction from PDE-solver errors.
+最初は FFTW も Navier–Stokes ソルバも使わず、抽出した自己相似スケーリングだけを小さな計算で確認する。これにより、構成理解の誤りと PDE ソルバの誤りを分離する。
 
-Initial target: seconds to minutes on an ordinary CPU.
+目標計算時間: 一般的な CPU で数秒〜数分。
 
-## Step 3 — Solver verification
+## Step 3 — ソルバ検証
 
-Deliverable: periodic pseudo-spectral solver plus tests.
+成果物: 周期擬スペクトルソルバと回帰テスト。
 
-Order:
+順序:
 
-1. Fourier differentiation tests.
-2. Divergence-free projection test.
-3. 2/3 dealiasing test.
-4. Viscous decay of a known Fourier mode.
-5. Taylor–Green vortex regression test.
+1. Fourier 微分
+2. 発散ゼロ射影
+3. 2/3 dealiasing
+4. 既知 Fourier モードの粘性減衰
+5. Taylor–Green vortex 回帰
 
-Only after these pass should the blow-up construction be inserted.
+この5項目が通るまで、blow-up 構成をソルバへ入れない。
 
-## Step 4 — Resolution study
+現状、この Step は完了している。
 
-Nominal sequence:
+## Step 4 — 解像度研究
 
-- 64^3 for debugging;
-- 128^3 for routine experiments;
-- 256^3 only when justified by convergence data.
+標準系列:
 
-Track at minimum:
+- 64^3: デバッグと最初の基準
+- 128^3: 通常の比較実験
+- 256^3: 収束データが必要性を示した場合のみ
 
-- max velocity;
-- max vorticity;
-- kinetic energy;
-- enstrophy;
-- viscous dissipation;
-- divergence error;
-- PDE residual and relevant term-by-term cancellations;
-- timestep and CFL number.
+最低限追跡する量:
 
-## Step 5 — Dynamic rescaling
+- 最大速度
+- 最大渦度
+- 運動エネルギー
+- エンストロフィー
+- 粘性散逸
+- 発散誤差
+- PDE 残差と主要項ごとのキャンセル
+- 時間刻み
+- CFL 数
 
-If the physical core becomes under-resolved, test a dynamically rescaled formulation before paying for substantially larger DNS. The aim is to keep the shrinking structure O(1) in computational coordinates.
+現在は FFTW 版実行系と自動可視化が整っており、Taylor–Green 基準計算の自動生成を行っている。
 
-## Compute budget policy
+## Step 4.5 — 論文構成の数値部品
 
-Default budget: existing personal computer and open-source software. GPU, cloud HPC, and MPI are deferred until measurements show that they solve a specific bottleneck.
+大規模 DNS の前に、論文の構成そのものを小さく検証する。
 
-## Scientific caution
+順序:
 
-A numerical run can provide evidence about pre-singular behavior and consistency with a scaling law. It cannot by itself establish a mathematical finite-time singularity. Conversely, failure to reproduce a singular regime at low resolution is not evidence that the analytical construction is false.
+1. 式 (3.2)/(4.1) の類似座標 `q, eta, X`
+2. Lemma 4.1, 式 (4.2) の微分作用素 `T_b`, `Z_b`
+3. 式 (4.6)–(4.7) の `V0`, `Pi`
+4. 軸上正則性 (4.4)–(4.5)
+5. active annulus の leading stress
+6. Sections 6–7 の oscillatory pulse と平均 stress
+7. 残差改善と最終 forcing
+
+現在は 1 を実装済み。
+
+## Step 5 — 動的リスケーリング
+
+物理空間のコアが解像できなくなった場合は、単純に巨大 DNS へ進む前に動的リスケーリングを試す。縮小する構造を計算座標上で O(1) に保つことが目的。
+
+## 計算資源ポリシー
+
+標準予算は既存の個人 PC とオープンソースソフトウェア。GPU、クラウド HPC、MPI は、計測によって具体的なボトルネックが確認された後に導入する。
+
+## 成果物ポリシー
+
+途中成果も GitHub 上で追跡可能にする。
+
+- CSV: `results/reference/`
+- 可視化 SVG: `results/figures/`
+- 自動レポート: `reports/latest.md`
+
+main 更新時に GitHub Actions が軽量な基準計算を実行し、結果を自動コミットする。
+
+## 科学的注意
+
+数値計算は特異時刻直前の挙動やスケーリング則との整合性を示す証拠にはなるが、それだけで有限時間特異性を数学的に証明することはできない。逆に、低解像度で特異的挙動が見えないことも、解析構成が誤りである証拠にはならない。
