@@ -13,11 +13,19 @@ function(enable_project_warnings target)
     )
 endfunction()
 
+find_path(FFTW3_INCLUDE_DIR fftw3.h REQUIRED)
+find_library(FFTW3_LIBRARY NAMES fftw3 REQUIRED)
+
 add_executable(core_scaling src/core_scaling.cpp)
 enable_project_warnings(core_scaling)
 
 add_executable(fourier_diff_1d src/fourier_diff_1d.cpp)
 enable_project_warnings(fourier_diff_1d)
+
+add_executable(fftw_taylor_green src/fftw_taylor_green.cpp)
+target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
+target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
+enable_project_warnings(fftw_taylor_green)
 
 add_executable(test_core_scaling tests/test_core_scaling.cpp)
 enable_project_warnings(test_core_scaling)
@@ -40,3 +48,7 @@ add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
 add_test(NAME viscous_decay_regression COMMAND test_viscous_decay)
 add_test(NAME taylor_green_regression COMMAND test_taylor_green)
+add_test(
+    NAME fftw_taylor_green_smoke
+    COMMAND fftw_taylor_green 6 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_smoke.csv
+)
