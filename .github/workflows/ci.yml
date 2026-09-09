@@ -43,7 +43,8 @@ jobs:
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
-          python3 scripts/generate_taylor_green_flow.py
+          python3 scripts/generate_taylor_green_flow.py \
+            results/reference/taylor_green_n16.csv 0.1
           python3 scripts/generate_taylor_green_evolution.py \
             results/reference/taylor_green_numerical_snapshots_n32.csv
 
