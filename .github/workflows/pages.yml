@@ -27,8 +27,11 @@ jobs:
           cp web/index.html web/viewer.js _site/
           cp results/reference/taylor_green_numerical_n32.vtk _site/data/
           cp results/reference/taylor_green_reference_n16.vtk _site/data/
-          if [ -f results/figures/taylor_green_3d.gif ]; then
-            cp results/figures/taylor_green_3d.gif _site/figures/
+          if [ -d results/reference/taylor_green_3d_series ]; then
+            cp -R results/reference/taylor_green_3d_series _site/data/
+          fi
+          if [ -f results/figures/taylor_green_3d_evolution.gif ]; then
+            cp results/figures/taylor_green_3d_evolution.gif _site/figures/
           fi
           touch _site/.nojekyll
       - name: Configure Pages
