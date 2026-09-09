@@ -31,6 +31,11 @@ target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
 enable_project_warnings(fftw_taylor_green)
 
+add_executable(taylor_green_snapshots src/taylor_green_snapshots.cpp)
+target_include_directories(taylor_green_snapshots PRIVATE ${FFTW3_INCLUDE_DIR})
+target_link_libraries(taylor_green_snapshots PRIVATE ${FFTW3_LIBRARY})
+enable_project_warnings(taylor_green_snapshots)
+
 add_executable(test_core_scaling tests/test_core_scaling.cpp)
 enable_project_warnings(test_core_scaling)
 
@@ -80,4 +85,8 @@ add_test(NAME taylor_green_regression COMMAND test_taylor_green)
 add_test(
     NAME fftw_taylor_green_smoke
     COMMAND fftw_taylor_green 6 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_smoke.csv
+)
+add_test(
+    NAME taylor_green_snapshot_smoke
+    COMMAND taylor_green_snapshots 8 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/taylor_green_snapshots_smoke.csv
 )
