@@ -28,7 +28,11 @@ enable_project_warnings(test_divergence_free_projection)
 add_executable(test_dealiasing_2_3 tests/dealiasing_2_3.cpp)
 enable_project_warnings(test_dealiasing_2_3)
 
+add_executable(test_viscous_decay tests/viscous_decay.cpp)
+enable_project_warnings(test_viscous_decay)
+
 add_test(NAME core_scaling_regression COMMAND test_core_scaling)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
+add_test(NAME viscous_decay_regression COMMAND test_viscous_decay)
