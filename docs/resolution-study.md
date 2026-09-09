@@ -1,22 +1,22 @@
-# Resolution study protocol
+# 解像度研究プロトコル
 
-This document implements Step 4 of `docs/roadmap.md` as a reproducible numerical protocol. It deliberately starts with the Taylor–Green regression problem before any blow-up profile is inserted.
+この文書は `docs/roadmap.md` の Step 4 を再現可能な数値手順として定義する。blow-up プロファイルを入れる前に、まず Taylor–Green 基準問題で数値基盤を検証する。
 
-## Purpose
+## 目的
 
-The resolution study answers a narrow question: is a discrepancy caused by spatial resolution, or is it still explainable by implementation or timestep error?
+解像度研究で答えたいのは「観測された差が空間解像度不足によるものか、それとも実装誤差・時間刻み誤差で説明できるか」である。
 
-Grid size must not be increased merely because a larger run is available. The default sequence is:
+単に大きな計算が可能だからという理由で格子を増やさない。標準系列は次の通り。
 
-1. `64^3` for debugging and the first convergence baseline;
-2. `128^3` only after the 64^3 run is stable and its dominant error is plausibly spatial;
-3. `256^3` only after 64^3 versus 128^3 data shows a measurable resolution-dependent discrepancy worth resolving.
+1. `64^3`: デバッグと最初の収束基準
+2. `128^3`: 64^3 が安定し、主要誤差が空間解像度由来と考えられる場合のみ
+3. `256^3`: 64^3 と 128^3 の差から、さらに解像する意味が確認できた場合のみ
 
-The direct-DFT tests remain the auditable reference for spectral conventions. The FFTW runner is the practical implementation for larger grids.
+直接 DFT の小型テストは Fourier 規約の監査用参照実装として残し、実用的な格子では FFTW 版を使う。
 
-## Build
+## ビルド
 
-On Debian/Ubuntu, install FFTW development headers first:
+Debian/Ubuntu:
 
 ```bash
 sudo apt-get install libfftw3-dev
@@ -25,79 +25,89 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-All regression tests should pass before a resolution run is interpreted.
+解像度実験を解釈する前に、CTest がすべて通っていることを確認する。
 
-## FFTW Taylor–Green runner
-
-The executable is:
+## FFTW Taylor–Green 実行系
 
 ```bash
 ./build/fftw_taylor_green <N> <final_time> <dt> <viscosity> <output.csv>
 ```
 
-A first 64^3 baseline is:
+64^3 の最初の基準例:
 
 ```bash
 ./build/fftw_taylor_green 64 0.1 0.001 0.1 taylor_green_64.csv
 ```
 
-If that run is stable and timestep error has been checked, the corresponding 128^3 run is:
+128^3 の例:
 
 ```bash
 ./build/fftw_taylor_green 128 0.1 0.0005 0.1 taylor_green_128.csv
 ```
 
-Do not infer spatial convergence from these two commands alone, because the timestep also changes. For a clean spatial comparison, first run both resolutions with a timestep small enough that halving `dt` at fixed `N` changes the observables much less than changing `N`.
+ただし、この2本だけを比較して空間収束を主張してはいけない。時間刻みも変わっているため、まず各 N で `dt` を半分にした計算を行い、時間刻み誤差が空間解像度差より十分小さいことを確認する。
 
-## Numerical formulation currently exercised
+## 現在の数値定式化
 
-The FFTW runner uses:
+FFTW 実行系は以下を使用する。
 
-- a periodic `2*pi` box in all three directions;
-- complex-to-complex FFTW transforms with the forward transform normalized by the number of grid points;
-- spectral derivatives using integer Fourier wave numbers;
-- incompressibility projection `P_k = I - k k^T / |k|^2` for nonzero modes;
-- component-wise 2/3 dealiasing cutoff;
-- rotational-form nonlinearity `u x omega`, followed by projection;
-- explicit fourth-order Runge–Kutta time integration;
-- spectral viscosity `-nu |k|^2 u_hat`.
+- 各方向 `2*pi` の周期ボックス
+- complex-to-complex FFTW
+- forward 変換を総格子点数で正規化
+- 整数 Fourier 波数によるスペクトル微分
+- 非ゼロ波数に対する非圧縮射影 `P_k = I - k k^T / |k|^2`
+- 成分ごとの 2/3 dealiasing
+- 回転形式非線形項 `u x omega` の後に射影
+- 4次 Runge–Kutta
+- 粘性項 `-nu |k|^2 u_hat`
 
-The current Taylor–Green initial condition is a two-dimensional Taylor–Green vortex embedded in the 3D box. For this field, the projected nonlinear term vanishes and the exact velocity amplitude decays as `exp(-2 nu t)`. This makes it useful as an end-to-end regression target, but it is not yet a demanding turbulent resolution benchmark.
+現在の Taylor–Green 初期条件は 2D Taylor–Green vortex を 3D ボックスへ埋め込んだもの。この場では射影後非線形項が消え、速度振幅は `exp(-2 nu t)` に従う。このため end-to-end 回帰には向くが、乱流的な解像度試験としてはまだ簡単である。
 
-## CSV diagnostics
+## CSV 診断量
 
-`fftw_taylor_green` writes one row per timestep with these columns:
+`fftw_taylor_green` は各時間ステップについて次を出力する。
 
-- `step`: integer timestep index;
-- `time`: physical simulation time;
-- `max_velocity`: maximum pointwise velocity magnitude;
-- `max_vorticity`: maximum pointwise vorticity magnitude;
-- `kinetic_energy`: spectral kinetic energy `0.5 * sum |u_hat|^2`;
-- `enstrophy`: spectral enstrophy `0.5 * sum |omega_hat|^2`;
-- `viscous_dissipation`: `2 * nu * enstrophy`;
-- `divergence_l2`: spectral L2 norm of `k dot u_hat`;
-- `pde_residual_l2`: discrete consistency residual `(u_n-u_{n-1})/dt - RHS(u_n)`; this is a timestep diagnostic, not an exact continuous PDE residual;
-- `projected_nonlinear_l2`: L2 norm of the projected, dealiased rotational nonlinear term before viscosity;
-- `dt`: timestep;
-- `cfl`: `max_velocity * dt / dx`, with `dx = 2*pi/N`.
+- `step`: ステップ番号
+- `time`: 時刻
+- `max_velocity`: 最大速度ノルム
+- `max_vorticity`: 最大渦度ノルム
+- `kinetic_energy`: `0.5 * sum |u_hat|^2`
+- `enstrophy`: `0.5 * sum |omega_hat|^2`
+- `viscous_dissipation`: `2 * nu * enstrophy`
+- `divergence_l2`: `k dot u_hat` のスペクトル L2
+- `pde_residual_l2`: `(u_n-u_{n-1})/dt - RHS(u_n)` の離散整合性残差
+- `projected_nonlinear_l2`: 射影・dealiasing 後の回転形式非線形項 L2
+- `dt`: 時間刻み
+- `cfl`: `max_velocity * dt / dx`
 
-These cover the minimum observables required by Step 4, with one caveat: term-by-term cancellation diagnostics for the announced blow-up construction cannot be meaningful until the exact construction and forcing are implemented from the paper.
+blow-up 構成に固有の項ごとのキャンセルは、論文の exact profile と forcing を実装してから追加する。
 
-## Acceptance checks before increasing N
+## N を上げる前の受入条件
 
-For each resolution, perform at least one timestep-halving run. Increasing `N` is justified only after all of the following are true:
+各解像度で少なくとも1回 `dt` 半減計算を行う。次の条件を満たしてから N を増やす。
 
-1. all CTest regression tests pass;
-2. `divergence_l2` remains near floating-point noise relative to the velocity spectrum;
-3. CFL remains comfortably below the explicit-stability limit used for the experiment;
-4. halving `dt` changes the observables substantially less than increasing `N`;
-5. no diagnostic grows solely because of an obvious normalization or aliasing error;
-6. the quantity motivating the larger grid shows a systematic resolution dependence.
+1. CTest がすべて成功
+2. `divergence_l2` が速度スペクトルに対して浮動小数点ノイズ近傍
+3. CFL が明確に安定域内
+4. `dt` 半減による診断量の変化が N 変更による差より十分小さい
+5. 正規化・aliasing の明白なバグで診断量が増えていない
+6. より大きな N を必要とする量に系統的な解像度依存が見える
 
-For the current Taylor–Green exact solution, also compare the final numerical velocity against `exp(-2 nu t)` times the initial field. The executable exits nonzero if its built-in exact-solution or divergence regression exceeds tolerance.
+Taylor–Green では最終速度を `exp(-2 nu t)` 倍した解析解とも比較する。内蔵回帰が許容誤差を超える場合、実行ファイルは非ゼロ終了する。
 
-## What Step 4 does not yet establish
+## GitHub 上の自動基準計算
 
-A converged Taylor–Green run validates the numerical infrastructure, not the finite-time singularity construction. Before the blow-up construction is inserted, `docs/theory.md` must be extended with exact paper section/equation references for every implemented profile, coordinate transform, pressure term, oscillatory correction, and forcing term.
+CI では重い 64^3 計算を毎回走らせず、N=16 の軽量基準計算を実行する。目的はコード変更後にも診断量の形と可視化パイプラインが壊れていないことを確認すること。
 
-Once those expressions are pinned to the primary source, the same diagnostics and resolution protocol can be reused for the pre-singular experiment.
+生成物:
+
+- `results/reference/taylor_green_n16.csv`
+- `results/figures/taylor_green_energy.svg`
+- `results/figures/taylor_green_errors.svg`
+- `reports/latest.md`
+
+64^3 以上の本格実験は、収束確認の段階で個人 PC または明示的な実験 workflow に分離する。
+
+## Step 4 でまだ証明できないこと
+
+Taylor–Green の収束は数値基盤の妥当性を示すだけで、有限時間特異性構成の再現ではない。論文構成を挿入する前に、`docs/theory.md` に記録した exact formula を順番に実装し、類似座標・微分作用素・leading profile・stress・oscillatory correction・forcing の各段階を個別に検証する。
