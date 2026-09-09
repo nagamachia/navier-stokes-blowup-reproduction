@@ -1,4 +1,5 @@
 build/
 cmake-build-*/
 *.csv
+!results/**/*.csv
 .DS_Store
