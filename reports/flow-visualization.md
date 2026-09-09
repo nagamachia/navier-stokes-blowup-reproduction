@@ -1,19 +1,25 @@
-# Taylor–Green 可視化レポート
+# Taylor–Green 数値流れ可視化レポート
 
-## 時間発展
+このレポートは解析式だけではなく、FFTW を使った数値時間積分が出力した格子スナップショットから生成しています。
 
-5時刻を同じ色スケールで並べ、渦度の減衰を比較します。
+## 数値渦度の時間発展
 
-![Taylor–Green evolution](../results/figures/taylor_green_evolution.svg)
+![numerical evolution](../results/figures/taylor_green_numerical_evolution.svg)
 
-## 3D 構造
+## 数値解と解析解の速度誤差分布
 
-現在の基準 Taylor–Green は 2D 解を 3D 周期箱へ埋め込んだものなので、`z` 方向には変化しません。下図は同じ `xy` 渦パターンが積層されることを示します。
+![numerical error field](../results/figures/taylor_green_velocity_error_field.svg)
 
-![Taylor–Green stacked slices](../results/figures/taylor_green_stacked_slices.svg)
+## 誤差の時間推移
 
-## ParaView 用データ
+![numerical error history](../results/figures/taylor_green_velocity_error_history.svg)
 
-`results/reference/taylor_green_reference_n16.vtk` を ParaView で開くと、速度ベクトル `velocity` と渦度 `omega_z` を3次元で確認できます。
+最終スナップショットの最大速度誤差は `6.280e-16`、RMS 速度誤差は `2.326e-16` です。
 
-この VTK は現在、解析的 Taylor–Green 基準解から生成しています。次段階では FFTW ソルバ本体の実格子 snapshot を同じ形式で出力し、解析解との差も可視化します。
+## 3D 可視化
+
+`results/reference/taylor_green_numerical_n32.vtk` は最終数値格子場を z 方向へ埋め込んだ ParaView 用 VTK です。`velocity`, `omega_z`, `velocity_error` を含みます。
+
+ParaView では Slice / Glyph / Stream Tracer を使うと流れ方向を確認できます。CFD データに対して ParaView は流線や方向付き Glyph を使った可視化をサポートしています。
+
+生データは `results/reference/taylor_green_numerical_snapshots_n32.csv` に保存しています。

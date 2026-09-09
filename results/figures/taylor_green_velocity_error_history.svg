@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 480">
+<rect width="100%" height="100%" fill="white"/>
+<text x="60" y="34" font-family="sans-serif" font-size="24" font-weight="700">Taylor–Green 数値解と解析解の速度誤差</text>
+<line x1="90" y1="410" x2="830" y2="410" stroke="#111827"/>
+<line x1="90" y1="70" x2="90" y2="410" stroke="#111827"/>
+<line x1="90" y1="410.00" x2="830" y2="410.00" stroke="#e5e7eb"/>
+<text x="82" y="415.00" text-anchor="end" font-family="sans-serif" font-size="12">0.00e+00</text>
+<line x1="90" y1="342.00" x2="830" y2="342.00" stroke="#e5e7eb"/>
+<text x="82" y="347.00" text-anchor="end" font-family="sans-serif" font-size="12">1.61e-16</text>
+<line x1="90" y1="274.00" x2="830" y2="274.00" stroke="#e5e7eb"/>
+<text x="82" y="279.00" text-anchor="end" font-family="sans-serif" font-size="12">3.23e-16</text>
+<line x1="90" y1="206.00" x2="830" y2="206.00" stroke="#e5e7eb"/>
+<text x="82" y="211.00" text-anchor="end" font-family="sans-serif" font-size="12">4.84e-16</text>
+<line x1="90" y1="138.00" x2="830" y2="138.00" stroke="#e5e7eb"/>
+<text x="82" y="143.00" text-anchor="end" font-family="sans-serif" font-size="12">6.46e-16</text>
+<line x1="90" y1="70.00" x2="830" y2="70.00" stroke="#e5e7eb"/>
+<text x="82" y="75.00" text-anchor="end" font-family="sans-serif" font-size="12">8.07e-16</text>
+<polyline points="90.00,175.10 275.00,152.81 460.00,128.55 645.00,114.35 830.00,145.56" fill="none" stroke="#111827" stroke-width="2.4" stroke-dasharray=""/>
+<text x="700" y="92" font-family="sans-serif" font-size="13">最大誤差</text>
+<polyline points="90.00,332.33 275.00,322.93 460.00,300.04 645.00,300.93 830.00,312.07" fill="none" stroke="#111827" stroke-width="2.4" stroke-dasharray="6 4"/>
+<text x="700" y="114" font-family="sans-serif" font-size="13">RMS誤差</text>
+<text x="460.0" y="460" text-anchor="middle" font-family="sans-serif" font-size="14">時間 t</text>
+</svg>
