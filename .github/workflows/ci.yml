@@ -42,15 +42,14 @@ jobs:
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
-          python3 scripts/generate_taylor_green_flow.py \
-            results/reference/taylor_green_n16.csv 0.1
+          python3 scripts/generate_taylor_green_evolution.py
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f results/reference/*.csv results/figures/*.svg reports/latest.md
+          git add -f results/reference/*.csv results/reference/*.vtk results/figures/*.svg reports/*.md
           if git diff --cached --quiet; then
             echo "No generated result changes"
             exit 0
