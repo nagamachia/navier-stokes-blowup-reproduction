@@ -22,6 +22,10 @@ enable_project_warnings(core_scaling)
 add_executable(fourier_diff_1d src/fourier_diff_1d.cpp)
 enable_project_warnings(fourier_diff_1d)
 
+add_executable(similarity_coordinates src/similarity_coordinates.cpp)
+target_include_directories(similarity_coordinates PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(similarity_coordinates)
+
 add_executable(fftw_taylor_green src/fftw_taylor_green.cpp)
 target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
@@ -29,6 +33,10 @@ enable_project_warnings(fftw_taylor_green)
 
 add_executable(test_core_scaling tests/test_core_scaling.cpp)
 enable_project_warnings(test_core_scaling)
+
+add_executable(test_similarity_coordinates tests/similarity_coordinates.cpp)
+target_include_directories(test_similarity_coordinates PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_similarity_coordinates)
 
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
@@ -43,6 +51,7 @@ add_executable(test_taylor_green tests/taylor_green_regression.cpp)
 enable_project_warnings(test_taylor_green)
 
 add_test(NAME core_scaling_regression COMMAND test_core_scaling)
+add_test(NAME similarity_coordinates_regression COMMAND test_similarity_coordinates)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
