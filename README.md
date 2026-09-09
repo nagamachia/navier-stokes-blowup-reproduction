@@ -91,11 +91,16 @@ main 更新時に GitHub Actions が軽量な基準計算を自動実行し、�
 - 可視化: `results/figures/`
 - 最新レポート: [reports/latest.md](reports/latest.md)
 
-GitHub 上で直接確認できる図:
+Taylor–Green は `z=0` 断面について、流れそのものも可視化します。
 
-- `results/figures/taylor_green_energy.svg`
-- `results/figures/taylor_green_errors.svg`
-- `results/figures/similarity_coordinate_error.svg`
+- `results/figures/taylor_green_velocity_field.svg` — 速度の大きさ + ベクトル
+- `results/figures/taylor_green_streamlines.svg` — 流線
+- `results/figures/taylor_green_vorticity.svg` — 渦度 `omega_z`
+- `results/figures/taylor_green_energy.svg` — エネルギー・エンストロフィー
+- `results/figures/taylor_green_errors.svg` — 数値誤差診断
+- `results/figures/similarity_coordinate_error.svg` — 類似座標誤差
+
+最新レポートにも速度場・流線・渦度図を埋め込みます。
 
 ## FFTW 解像度実験
 
