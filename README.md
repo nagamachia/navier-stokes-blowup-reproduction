@@ -23,11 +23,9 @@ OpenAI が発表した 3 次元非圧縮 Navier–Stokes 方程式の有限時�
 - GPU / MPI / クラウド HPC は、具体的なボトルネックが確認されてから導入
 - 解像度を上げる前に、低解像度で実装誤差・時間刻み誤差を潰す
 
-## 現在の構成
+## 現在の論文構成実装
 
-### 論文由来の類似座標
-
-OpenAI 論文の式 (3.2)/(4.1) に対応して
+### 類似座標 — 式 (3.2)/(4.1)
 
 `tau = q (1 - eta^2)`
 
@@ -35,33 +33,41 @@ OpenAI 論文の式 (3.2)/(4.1) に対応して
 
 `X = r^2 / (2q)`
 
-を扱います。`include/similarity_coordinates.hpp` には、与えられた `(z, tau)` から
+を扱い、`include/similarity_coordinates.hpp` で
 
 `q - z^2 q^(2h) = tau`
 
-を数値的に解く実装があります。`tests/similarity_coordinates.cpp` で元の恒等式へ戻ることを回帰テストしています。
+を数値的に解きます。逆変換回帰では `q,eta,X` を元の恒等式へ戻して検証します。
 
-### Lemma 4.1 の微分作用素
+### 微分作用素 — Lemma 4.1 / 式 (4.2)
 
-`include/similarity_operators.hpp` に式 (4.2) の `T_b`, `Z_b` を実装しています。`tests/similarity_operators.cpp` では manufactured profile を使い、物理座標の有限差分 `partial_t`, `partial_z` と照合します。
+`include/similarity_operators.hpp` に `T_b`, `Z_b` を実装し、manufactured profile を使って物理座標の有限差分 `partial_t`, `partial_z` と照合します。
 
-### 式 (4.6)–(4.7) の leading profile 関係
+### Leading profile 関係 — 式 (4.6)–(4.7)
 
-`include/leading_profile_relations.hpp` に以下の汎用数値部品を実装しています。
+`include/leading_profile_relations.hpp` に
 
 - radial average `A_X`
 - `U`, `partial_eta U` からの `V0`
-- 軸正則形 `E=sqrt(2X)F` を使った pressure integral `Pi`
+- 軸正則形 `E=sqrt(2X)F` を使った `Pi`
 
-`tests/leading_profile_relations.cpp` では polynomial / exponential manufactured profile に対して解析値と比較します。
+を実装し、解析値を持つ manufactured profile と比較します。
 
-### Leading stress
+### Leading stress — 式 (4.8)–(4.11)
 
-式 (4.8)–(4.11) の `H,F,l,W,H_c,S_q,S_n,Q_s,N_s,T_0` は、論文PDFから直接抽出して `docs/leading-stress.md` に整理済みです。次はこの部分の数値実装です。
+`docs/leading-stress.md` にPDFから式を抽出し、`include/leading_stress.hpp` に
 
-### 擬スペクトルソルバ検証
+`H,F,l,W,H_c,S_q,S_n,Q_s,N_s,p_s,a,b_s,T_0`
 
-CTest では Fourier 微分、発散ゼロ射影、2/3 dealiasing、既知 Fourier モードの粘性減衰、Taylor–Green vortex、FFTW smoke test、類似座標、類似微分作用素、leading-profile relation を回帰検証します。
+を実装しています。`Q_s/N_s` のODE恒等式、軸上極限、`T_0` の軸正則性を回帰テストしています。
+
+### Cartesian 軸正則性 — 式 (4.4)–(4.5)
+
+`include/leading_field.hpp` に `E=sqrt(2X)F`, `V0=Xv0` を使った Cartesian leading field を実装し、`r -> 0` で transverse velocity が `O(r)` になることを検証します。
+
+## 擬スペクトルソルバ検証
+
+CTest では Fourier 微分、発散ゼロ射影、2/3 dealiasing、粘性減衰、Taylor–Green、FFTW smoke test と上記論文由来の数値部品をまとめて回帰検証します。
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -79,19 +85,17 @@ sudo apt-get install libfftw3-dev
 
 ## 実験結果を見る
 
-GitHub Actions は main 更新時に小さな基準計算を自動実行し、結果をリポジトリへ保存します。
+main 更新時に GitHub Actions が軽量な基準計算を自動実行し、結果をリポジトリへコミットします。
 
 - 生データ: `results/reference/`
-- 図: `results/figures/`
-- 最新レポート: `reports/latest.md`
+- 可視化: `results/figures/`
+- 最新レポート: [reports/latest.md](reports/latest.md)
 
 GitHub 上で直接確認できる図:
 
 - `results/figures/taylor_green_energy.svg`
 - `results/figures/taylor_green_errors.svg`
 - `results/figures/similarity_coordinate_error.svg`
-
-最新のまとめは [reports/latest.md](reports/latest.md) を参照してください。
 
 ## FFTW 解像度実験
 
@@ -118,11 +122,12 @@ CSV には最大速度、最大渦度、運動エネルギー、エンストロ�
 
 ## 現在の進捗
 
-- **Step 1:** 類似座標、微分作用素、leading field、非圧縮条件、圧力、leading stress、active annulus、最終 forcing 構成まで式番号付きで抽出中。
+- **Step 1:** 類似座標、微分作用素、leading field、非圧縮条件、圧力、leading stress、active annulus、最終 forcing 構成まで式番号付きで抽出を継続中。
 - **Step 2:** コアスケーリング実験済み。
-- **Step 3:** Fourier 微分、射影、2/3 dealiasing、粘性減衰、Taylor–Green 回帰が CI で通過。
-- **Step 4 基盤:** FFTW 版 3D 実行系、診断量、CSV、SVG可視化、自動レポート生成を実装済み。
-- **論文構成の実装:** 式 (3.2)/(4.1)、Lemma 4.1、式 (4.6)–(4.7) の汎用数値部品まで実装済み。次は式 (4.8)–(4.11) の leading stress を実装する。
+- **Step 3:** 擬スペクトルソルバの5段階検証を完了。
+- **Step 4 基盤:** FFTW 版 3D 実行系、CSV診断、SVG可視化、自動レポート生成を実装済み。
+- **論文構成の汎用数値部品:** 式 (3.2)/(4.1)、(4.2)、(4.4)–(4.11) まで実装・回帰中。
+- **次の大きな対象:** Theorem 4.6 と Appendices A/B の constructive profile `E,U,Pi`。ここからは実際の profile construction を数値化し、任意の surrogate を OpenAI 構成として扱わない。
 
 ## 原典
 
