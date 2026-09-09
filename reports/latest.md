@@ -1,6 +1,6 @@
 # 最新の自動計算レポート
 
-このレポートは GitHub Actions で自動生成されます。対象コミット: `5ddf3756b2bd`
+このレポートは GitHub Actions で自動生成されます。対象コミット: `b5c57c89c4fa`
 
 ## 実施した計算・回帰
 
@@ -46,3 +46,26 @@
 次の大きな境界は Theorem 4.6 と Appendices A/B の constructive profile `E,U,Pi` です。ここから先は任意の surrogate profile を OpenAI 構成として扱わず、論文の構成手順そのものを段階的に数値化します。その後、active annulus の stress cone と Sections 6–7 の oscillatory wave realization に進みます。
 
 CSV の生データは `results/reference/` に保存されています。実装詳細は `docs/progress.md` と `docs/leading-stress.md` を参照してください。
+
+## Taylor–Green の流れの可視化
+
+基準計算と同じ `t=0.1`, `nu=0.1` の `z=0` 断面を可視化しています。現在の Taylor–Green 回帰は z に依存しない2次元渦を3次元周期箱へ埋め込んだものなので、この断面が全 z で同じ形になります。
+
+### 速度場
+
+背景色は速度の大きさ、矢印は速度ベクトルです。
+
+![Taylor–Green velocity field](../results/figures/taylor_green_velocity_field.svg)
+
+### 流線
+
+閉じた循環セルが交互に並び、隣接セルでは回転方向が反転します。
+
+![Taylor–Green streamlines](../results/figures/taylor_green_streamlines.svg)
+
+### 渦度
+
+`omega_z` の符号で回転方向が分かります。暖色・寒色の4領域が交互に現れます。
+
+![Taylor–Green vorticity](../results/figures/taylor_green_vorticity.svg)
+
