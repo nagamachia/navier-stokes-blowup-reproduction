@@ -6,7 +6,7 @@
 
 ![3D Taylor–Green evolution](../results/figures/taylor_green_3d_evolution.gif)
 
-全 21 フレーム、`t=0.000` から `t=0.500` までを共通色スケールで表示します。
+全 11 フレーム、`t=0.000` から `t=0.500` までを共通色スケールで表示します。
 
 ## 最大渦度の推移
 

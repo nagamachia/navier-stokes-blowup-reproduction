@@ -1,0 +1,66 @@
+{
+  "format": "legacy-vtk-structured-points-series-v1",
+  "grid": [
+    24,
+    24,
+    24
+  ],
+  "frame_count": 11,
+  "frames": [
+    {
+      "index": 0,
+      "time": 0.0,
+      "file": "frame_000.vtk"
+    },
+    {
+      "index": 1,
+      "time": 0.05,
+      "file": "frame_001.vtk"
+    },
+    {
+      "index": 2,
+      "time": 0.1,
+      "file": "frame_002.vtk"
+    },
+    {
+      "index": 3,
+      "time": 0.15,
+      "file": "frame_003.vtk"
+    },
+    {
+      "index": 4,
+      "time": 0.2,
+      "file": "frame_004.vtk"
+    },
+    {
+      "index": 5,
+      "time": 0.25,
+      "file": "frame_005.vtk"
+    },
+    {
+      "index": 6,
+      "time": 0.3,
+      "file": "frame_006.vtk"
+    },
+    {
+      "index": 7,
+      "time": 0.35000000000000003,
+      "file": "frame_007.vtk"
+    },
+    {
+      "index": 8,
+      "time": 0.4,
+      "file": "frame_008.vtk"
+    },
+    {
+      "index": 9,
+      "time": 0.45,
+      "file": "frame_009.vtk"
+    },
+    {
+      "index": 10,
+      "time": 0.5,
+      "file": "frame_010.vtk"
+    }
+  ]
+}
