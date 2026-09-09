@@ -22,7 +22,7 @@ The project deliberately targets inexpensive personal computing:
 - C++20
 - FP64
 - OpenMP for shared-memory parallelism
-- FFTW when the spectral solver is introduced
+- FFTW for practical spectral transforms
 - MPI only if a later experiment genuinely requires multiple nodes
 
 ## Roadmap
@@ -49,7 +49,7 @@ If direct resolution becomes the limiting factor, transform to coordinates that 
 
 ## Phase 0 quick start
 
-The current executable checks only the asymptotic core-scaling algebra. It is intentionally **not** a Navier–Stokes solver.
+The core-scaling executable checks only the asymptotic scaling algebra. It is intentionally **not** a Navier–Stokes solver.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -81,7 +81,7 @@ The velocity scale therefore grows as `tau -> 0`, while this core-energy estimat
 
 ## Solver verification
 
-CTest currently covers the verification sequence in `docs/roadmap.md`:
+CTest covers the verification sequence in `docs/roadmap.md`:
 
 1. Fourier differentiation on a periodic trigonometric function.
 2. Spectral divergence-free projection, including idempotence and non-increasing modal energy.
@@ -89,13 +89,29 @@ CTest currently covers the verification sequence in `docs/roadmap.md`:
 4. Viscous decay of an incompressible Fourier mode against its analytic decay law.
 5. A small 3D direct-DFT pseudo-spectral Taylor–Green regression using RK4, projection, rotational-form nonlinearity, and 2/3 dealiasing.
 
-The direct DFT implementation is intentionally tiny and auditable; it is a verification reference rather than the solver intended for 64^3 and larger runs. The next implementation target is an FFTW-backed solver that preserves the same spectral conventions and regression checks.
+The direct DFT implementation is intentionally tiny and auditable. A separate FFTW implementation carries the same conventions into practical grid sizes and is also covered by a CI smoke test.
 
 Run all checks with
 
 ```bash
 ctest --test-dir build --output-on-failure
 ```
+
+## FFTW resolution-study runner
+
+Install FFTW development headers before configuring on Debian/Ubuntu:
+
+```bash
+sudo apt-get install libfftw3-dev
+```
+
+Then a first 64^3 Taylor–Green baseline can be run with
+
+```bash
+./build/fftw_taylor_green 64 0.1 0.001 0.1 taylor_green_64.csv
+```
+
+The CSV records maximum velocity, maximum vorticity, kinetic energy, enstrophy, viscous dissipation, divergence error, a discrete PDE consistency residual, projected nonlinear magnitude, timestep, and CFL number. The full Step 4 protocol and the criteria for moving from 64^3 to 128^3 and 256^3 are documented in `docs/resolution-study.md`.
 
 ## What counts as success?
 
@@ -112,6 +128,6 @@ Theory/source notes are maintained in `docs/theory.md`. Exact similarity profile
 ## Status
 
 - **Step 1:** initial auditable theory extraction complete; exact PDF equation-number pinning remains before full-profile implementation.
-- **Step 2:** minimal core-scaling executable and regression check complete.
+- **Step 2:** minimal core-scaling executable and release-active regression check complete.
 - **Step 3:** all five solver-verification checks in `docs/roadmap.md` are implemented and passing in CI using an auditable direct-DFT reference implementation.
-- **Next:** replace the O(N^6) reference transforms with FFTW for practical 64^3 resolution studies while preserving the verified projection, dealiasing, viscous, and Taylor–Green behavior.
+- **Step 4:** FFTW-backed 3D runner, required diagnostics, CI smoke regression, and the resolution-study protocol are in place. The next numerical milestone is a controlled 64^3 baseline and timestep-convergence study before considering 128^3.
