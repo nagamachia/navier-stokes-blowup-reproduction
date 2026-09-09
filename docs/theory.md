@@ -1,246 +1,329 @@
-# Theory notes for the numerical reproduction
+# 数値再現のための理論ノート
 
-This document separates three levels of confidence:
+この文書では、数式の確度を次の3段階に分ける。
 
-- **Paper-exact identities**: transcribed from the OpenAI paper with section/equation references.
-- **Consequences for numerical work**: algebraic or asymptotic consequences of those identities.
-- **Numerical toy models**: deliberately simpler than the published construction and never labeled as the OpenAI solution itself.
+- **論文に明記された厳密な式**: OpenAI 論文から節・式番号付きで転記したもの
+- **数値実装上の帰結**: 上記から代数的・漸近的に導かれるもの
+- **数値トイモデル**: 論文構成より意図的に単純化したもの。OpenAI の exact construction とは呼ばない
 
-Primary paper: `FINITE TIME BLOWUP FOR NAVIER–STOKES`, OpenAI, 2026.
+原典: `FINITE TIME BLOWUP FOR NAVIER–STOKES`, OpenAI, 2026。
 
-## 1. Problem and normalization
+## 1. 問題設定と規格化
 
-The paper constructs, for every positive viscosity, a smooth compactly supported force and a solution of the 3D incompressible Navier–Stokes equations that starts from rest, has uniformly bounded kinetic energy for `t < 1`, and develops unbounded velocity as `t -> 1-`; see Theorem 1.1 and equation (1.1).
+Theorem 1.1 と式 (1.1) では、任意の正粘性に対して、滑らかでコンパクト台を持つ forcing と、静止状態から始まり、`t < 1` では運動エネルギーが一様有界である一方、`t -> 1-` で速度が非有界になる 3D 非圧縮 Navier–Stokes 解を構成する。
 
-For the construction at viscosity one, define
+粘性1の構成では
 
-`tau = 1 - t`.
+`tau = 1 - t`
 
-The proof outline rescales the viscosity-one construction to arbitrary `nu > 0`; see Section 3 and equations (10.22)-(10.23). Numerical experiments in this repository stop at `tau > 0`.
+と置く。本リポジトリの数値計算では常に `tau > 0` で停止する。
 
-## 2. Exact similarity coordinates
+一般の `nu > 0` へのスケーリングは Section 3 と式 (10.22)–(10.23) にある。
 
-The concentrating leading field is introduced in Section 3.1 and developed in Section 4.1.
+## 2. 厳密な類似座標
 
-The fixed exponents are
+集中する leading field は Section 3.1 で導入され、Section 4.1 で展開される。
 
-`A = 1/2 + h`,
+固定指数は
 
-`D = 1/2 - h`,
+`A = 1/2 + h`
 
-with the final construction choosing `0 < h < 1/100`. Hence `A + D = 1`.
+`D = 1/2 - h`
 
-Equation (3.2), repeated as part of (4.1), defines the similarity coordinates by
+で、最終構成では `0 < h < 1/100`。したがって `A + D = 1`。
 
-`tau = q (1 - eta^2)`,
+式 (3.2)、および式 (4.1) の一部として、類似座標は
 
-`z = q^D eta`,
+`tau = q (1 - eta^2)`
 
-`X = r^2 / (2 q)`,
+`z = q^D eta`
 
-with `q > 0` and `-1 < eta < 1`.
+`X = r^2 / (2q)`
 
-Equivalently, eliminating `eta`, `q` is the unique solution of
+で定義される。`q > 0`, `-1 < eta < 1`。
 
-`q - z^2 / q^(2h) = tau`.
+`eta` を消去すると `q` は
 
-On fixed compact subsets of similarity coordinates away from `eta = +/-1`, `q ~ tau`. For bounded `X`, the limit `q -> 0` approaches the singular point.
+`q - z^2 / q^(2h) = tau`
 
-Section 4.1 also introduces
+の一意な正解である。
 
-`d = 1 - eta^2`,
+Section 4.1 ではさらに
 
-`L = 1 - 2 h eta^2`,
+`d = 1 - eta^2`
 
-`s = r^2 / 2`,
+`L = 1 - 2 h eta^2`
 
-so `X = s/q`; see equation (4.1).
+`s = r^2 / 2`
 
-## 3. Exact derivative operators
+`X = s/q`
 
-Lemma 4.1, equation (4.2), gives the coordinate calculus. For a smooth profile `f(X,eta)` and real `b`,
+を導入する。
 
-`partial_t(q^b f) = q^(b-1) T_b f`,
+この部分は `include/similarity_coordinates.hpp` に実装済みで、`tests/similarity_coordinates.cpp` に回帰テストがある。
 
-`partial_z(q^b f) = q^(b-D) Z_b f`,
+## 3. 微分作用素
 
-where
+Lemma 4.1、式 (4.2) は、滑らかな `f(X,eta)` と実数 `b` に対して
 
-`T_b f = L^(-1) (-b f + D eta partial_eta f + D_X f)`,
+`partial_t(q^b f) = q^(b-1) T_b f`
 
-`Z_b f = L^(-1) (2 b eta f + d partial_eta f - 2 eta D_X f)`,
+`partial_z(q^b f) = q^(b-D) Z_b f`
 
-and
+を与える。
 
-`D_X f = X partial_X f`.
+ここで
 
-These formulas should be implemented and unit-tested before a numerical implementation of the exact leading profile.
+`T_b f = L^(-1) (-b f + D eta partial_eta f + D_X f)`
 
-## 4. Leading velocity and pressure fields
+`Z_b f = L^(-1) (2 b eta f + d partial_eta f - 2 eta D_X f)`
 
-The exact leading-field ansatz is equation (4.3):
+`D_X f = X partial_X f`
 
-`u_theta^(0) = q^(-A) E(X,eta)`,
+である。
 
-`u_z^(0) = q^(-A) U(X,eta)`,
+exact leading profile を数値化する前に、この微分作用素を独立実装して有限差分などと照合する。
 
-`r u_r^(0) = V0(X,eta)`,
+## 4. leading velocity と pressure
 
-`p^(0) = q^(-2A) Pi(X,eta)`.
+式 (4.3) の ansatz は
 
-For regularity at the cylindrical axis the azimuthal profile is factored as
+`u_theta^(0) = q^(-A) E(X,eta)`
 
-`E = C^(-1) sqrt(2X) phi`,
+`u_z^(0) = q^(-A) U(X,eta)`
 
-with fixed `C > 1`. Equation (4.4) states the axis regularity structure
+`r u_r^(0) = V0(X,eta)`
 
-`E = sqrt(2X) F`,
+`p^(0) = q^(-2A) Pi(X,eta)`
 
-`V0 = X v0`,
+である。
 
-with `F = phi/C` and `F, U, v0, Pi` smooth on the closed inner profile rectangle.
+円柱軸 `r=0` での正則性のため、方位角方向プロファイルは
 
-Equation (4.5) gives the corresponding Cartesian components. This is the preferred formula for code evaluating the field near `r = 0`, because it avoids treating the cylindrical basis as defined on the axis.
+`E = C^(-1) sqrt(2X) phi`
 
-## 5. Incompressibility and pressure identities
+と因子分解される。式 (4.4) では
 
-The profiles `E` and `U` are the primary choices. Incompressibility determines `V0`, while radial centrifugal balance determines the radial pressure derivative.
+`E = sqrt(2X) F`
 
-Define the radial average, equation (4.6),
+`V0 = X v0`
 
-`A_X(f)(X,eta) = (1/X) integral_0^X f(x,eta) dx`,
+と書かれ、`F, U, v0, Pi` は inner profile rectangle 上で滑らか。
 
-with its smooth axis value `A_X(f)(0,eta) = f(0,eta)`.
+式 (4.5) は対応する Cartesian 成分を与える。`r=0` 近傍の実装では円柱基底を直接扱わず、式 (4.5) の Cartesian 表現を使う方が安全。
 
-Then equation (4.7) gives
+## 5. 非圧縮条件と圧力
 
-`V0 = (X/L) [2 eta U - 2 D eta A_X(U) - d partial_eta A_X(U)]`,
+`E` と `U` を主なプロファイルとして選ぶと、非圧縮条件が `V0` を決め、遠心力バランスが圧力の半径方向微分を決める。
 
-and
+式 (4.6) の半径平均:
 
-`partial_X Pi = E^2 / (2X)`.
+`A_X(f)(X,eta) = (1/X) integral_0^X f(x,eta) dx`
 
-The pressure normalization used in the proof is equivalently
+軸上では滑らかな極限として
 
-`Pi(X,eta) = - integral_X^infinity E(x,eta)^2 / (2x) dx`;
+`A_X(f)(0,eta) = f(0,eta)`
 
-see Section 3.1 immediately after (3.2).
+を使う。
 
-These identities are direct implementation targets: a discretized profile should satisfy incompressibility and radial pressure balance to numerical tolerance before the full residual is evaluated.
+式 (4.7):
 
-## 6. Core geometry and blow-up rate
+`V0 = (X/L) [2 eta U - 2 D eta A_X(U) - d partial_eta A_X(U)]`
 
-For fixed inner profile bounds `0 <= X <= X_c` and `|eta| <= eta_c < 1`, Section 3.1 defines the physical core `C_tau`. Since `q ~ tau` there,
+および
 
-`ell_r ~ tau^(1/2)`,
+`partial_X Pi = E^2 / (2X)`
 
-`ell_z ~ tau^(1/2-h)`.
+を与える。
 
-The leading tangential components obey
+圧力の規格化は Section 3.1 の (3.2) 直後に
 
-`||u_theta^(0)||_inf ~ tau^(-1/2-h)`,
+`Pi(X,eta) = - integral_X^infinity E(x,eta)^2 / (2x) dx`
 
-`||u_z^(0)||_inf ~ tau^(-1/2-h)`,
+として書かれている。
 
-while
+数値的には、tabulated `E,U` から `V0,Pi` を再構成し、Cartesian divergence と radial pressure balance を誤差評価するのが直接の実装対象。
 
-`||u_r^(0)||_inf = O(tau^(-1/2))`.
+## 6. コア形状と blow-up rate
 
-A particularly useful exact numerical sampling path is already identified by the proof. For any fixed `0 < X_* < X_c`, take
+固定された inner profile 領域
 
-`z = 0`, `r = sqrt(2 X_* tau)`.
+`0 <= X <= X_c`
 
-Then `q = tau`, `eta = 0`, and
+`|eta| <= eta_c < 1`
 
-`u_theta^(0) = E(X_*,0) tau^(-1/2-h)`.
+では `q ~ tau`。
 
-After all corrections are summed, Theorem 3.1(iv), proved in Proposition 9.9, preserves this leading growth in the form
+したがって物理長さは
 
-`u_theta,loc(sqrt(2 X_in tau), 0, 0, 1-tau) = tau^(-A) [e0 + O(tau^(2h))]`.
+`ell_r ~ tau^(1/2)`
 
-This path should be the primary regression observable once the construction beyond the toy scaling model is implemented.
+`ell_z ~ tau^(1/2-h)`
 
-## 7. Energy consistency
+となる。
 
-The core volume has order
+leading tangential components は
 
-`tau^(3/2-h)`.
+`||u_theta^(0)||_inf ~ tau^(-1/2-h)`
 
-Combining this with the dominant velocity scale `tau^(-1/2-h)` gives the core kinetic-energy order
+`||u_z^(0)||_inf ~ tau^(-1/2-h)`
 
-`E_core ~ tau^(1/2-3h)`.
+一方で
 
-Because the construction has `h < 1/100`, this exponent is positive. Thus the core contribution can tend to zero while the pointwise velocity diverges. This agrees with the physical description in Section 2.1 and Section 3.1.
+`||u_r^(0)||_inf = O(tau^(-1/2))`
 
-The existing `src/core_scaling.cpp` tests only this scaling algebra; it is not the leading-profile PDE construction.
+である。
 
-## 8. Leading profile is not an arbitrary analytic formula
+数値回帰に特に有用なのが、固定した `0 < X_* < X_c` に対する
 
-The paper does not simply provide a short closed-form pair `E(X,eta), U(X,eta)` that can be copied into a CFD initial condition. The profiles are constructed through matching, moment constraints, an inner analytic construction, a heat exterior, and stress-cone inequalities.
+`z = 0`
 
-Section 4.4 culminates in Theorem 4.6. It asserts existence of fixed
+`r = sqrt(2 X_* tau)`
 
-`h in (0,1/100)`, `lambda > 0`, `C > 1`, `0 < X_a < X_b`,
+という経路。このとき
 
-and profiles `E, U, Pi` satisfying the required regular-axis, annular-stress, matching, moment, and exterior properties. Appendix B constructs the inner profile; Appendix A constructs/matches the outer profile and heat exterior.
+`q = tau`
 
-Therefore an exact numerical reproduction must implement the constructive profile procedure, not invent a convenient Gaussian or Taylor-Green surrogate and call it the paper's profile.
+`eta = 0`
 
-## 9. Annular residual and oscillatory cancellation
+なので
 
-The background profile alone is insufficient. The physical description in Section 2 and proof outline in Section 3 explain that joining the concentrating inner field to the exterior leaves a singular momentum residual in an annulus.
+`u_theta^(0) = E(X_*,0) tau^(-1/2-h)`
 
-The active annulus is fixed in similarity coordinates:
+となる。
 
-`X_a < X < X_b`, `-1 <= eta <= 1`;
+補正を全て加えた後も Theorem 3.1(iv)、Proposition 9.9 により
 
-see Theorem 4.6 and equation (4.24) for the inner/outer collar definitions.
+`u_theta,loc(sqrt(2 X_in tau), 0, 0, 1-tau) = tau^(-A) [e0 + O(tau^(2h))]`
 
-The construction rewrites the tangential residual as a radial stress divergence. Equations (4.7)-(4.11) define the leading stress quantities, and the admissible stress-cone condition is expressed in equation (4.23). Theorem 4.6 arranges the leading profile so this stress is realizable by the oscillatory wave families.
+が保たれる。exact construction を実装した後の主要回帰観測量にする。
 
-The oscillatory pulses are not optional numerical decoration: their averaged quadratic momentum flux supplies the missing stress. Proposition 7.5 realizes the leading stress by positive wave covariances; Proposition 7.6 supplies higher-order stress corrections. Subsequent corrections improve the remaining residual, culminating in Proposition 9.6 and the summed local field of Proposition 9.9.
+## 7. エネルギー整合性
 
-This establishes the implementation order: leading profile and stress first, then wave realization, then residual-improvement corrections.
+コア体積は
 
-## 10. Exterior and final smooth forcing
+`tau^(3/2-h)`
 
-Outside the active radial profile region, the construction preserves an exact purely azimuthal heat-flow exterior; Section 3.1 points to equation (4.29). Its momentum residual vanishes there.
+のオーダー。
 
-After the local construction is summed, Section 10 localizes it in physical space and time. Proposition 10.1 applies the spatial cutoff at the vector-potential level so incompressibility is preserved, and applies a temporal cutoff so the initial velocity is zero.
+主要速度スケール `tau^(-1/2-h)` を組み合わせると、コア運動エネルギーは
 
-The final force is the Navier-Stokes momentum residual of the localized fields. Lemma 10.3 supplies the smooth extension through `t = 1` with compact space-time support. Thus the force should not be approximated independently: in a faithful reproduction it is computed from the completed localized `(u,p)` and checked for smooth extension.
+`E_core ~ tau^(1/2-3h)`
 
-For arbitrary viscosity, use the scaling stated in Section 3:
+となる。
 
-`u_nu(x,t) = sqrt(nu) u(x/sqrt(nu),t)`,
+`h < 1/100` なので指数は正。したがって点wise速度が発散しても、コアのエネルギー寄与は0へ向かい得る。
 
-`p_nu(x,t) = nu p(x/sqrt(nu),t)`,
+`src/core_scaling.cpp` はこの代数スケーリングだけを検証するトイモデルであり、exact leading profile ではない。
 
-`f_nu(x,t) = sqrt(nu) f(x/sqrt(nu),t)`.
+## 8. leading profile は単純な閉形式ではない
 
-## 11. Numerically testable invariants and diagnostics
+論文は `E(X,eta), U(X,eta)` を単純な Gaussian や短い解析式として与えているわけではない。
 
-The exact extraction suggests the following regression hierarchy:
+Section 4.4 の Theorem 4.6 は、ある固定された
 
-1. Solve the implicit similarity-coordinate equation for `q(z,tau)` and verify (3.2)/(4.1).
-2. Unit-test the `T_b` and `Z_b` derivative identities against finite differences or automatic differentiation.
-3. Given tabulated `E,U`, compute `V0` and `Pi` from (4.6)-(4.7) and verify Cartesian divergence and radial pressure balance.
-4. Verify axis regularity using the factorizations (4.4)-(4.5).
-5. Measure the leading path `r = sqrt(2 X_in tau), z=0` and fit the exponent `-A`.
-6. Evaluate the momentum residual separately in the inner region, active annulus, and heat exterior.
-7. Once waves are implemented, measure cancellation between background residual and averaged quadratic wave stress.
-8. Track the final residual and its derivatives as `tau -> 0`; the target is smooth/flat behavior rather than merely small velocity error.
+`h in (0,1/100)`
 
-## 12. Implementation boundary after this extraction
+`lambda > 0`
 
-The following items are now pinned directly to the paper and may be implemented without guessing:
+`C > 1`
 
-- similarity coordinates: (3.2), (4.1);
-- derivative operators: Lemma 4.1, (4.2);
-- leading velocity/pressure ansatz: (4.3)-(4.5);
-- radial averaging, incompressibility and pressure balance: (4.6)-(4.7);
-- active annulus and leading-profile existence/properties: (4.24), Theorem 4.6;
-- preserved blow-up sampling path: Theorem 3.1(iv), Proposition 9.9;
-- localization/final forcing architecture: Proposition 10.1 and Lemma 10.3.
+`0 < X_a < X_b`
 
-The next paper-extraction pass needed before coding the oscillatory realization should transcribe the exact definitions (4.8)-(4.11), the pulse coordinate/phase/amplitude formulas in Sections 6-7, and the stress realization of Propositions 7.5-7.6. Those formulas are substantially more involved and should be implemented only after their dependencies are pinned in the same way.
+と、必要な正則性、annular stress、matching、moment、exterior 条件を満たす `E,U,Pi` の存在を構成的に示す。
+
+Appendix B が inner profile、Appendix A が outer profile と heat exterior の構成・matching を担う。
+
+したがって exact numerical reproduction では、便利な surrogate profile を置くのではなく、この構成手順自体を数値化する必要がある。
+
+## 9. annular residual と oscillatory cancellation
+
+背景プロファイルだけでは不十分。Section 2 と Section 3 の説明では、集中する inner field と exterior を接続すると annulus に特異な momentum residual が残る。
+
+active annulus は類似座標で
+
+`X_a < X < X_b`
+
+`-1 <= eta <= 1`
+
+に固定される。Theorem 4.6 と式 (4.24) を参照。
+
+式 (4.7)–(4.11) は leading stress quantities を定義し、式 (4.23) が admissible stress cone 条件を与える。
+
+Theorem 4.6 は、この stress が後段の oscillatory wave families で実現可能になるよう leading profile を構成する。
+
+oscillatory pulses は装飾ではなく、平均された二次運動量 flux が不足 stress を埋める本質的部分。
+
+- Proposition 7.5: leading stress を正の wave covariance で実現
+- Proposition 7.6: higher-order stress corrections
+- Proposition 9.6: 残差改善
+- Proposition 9.9: summed local field
+
+したがって実装順序は
+
+1. leading profile と stress
+2. wave realization
+3. residual-improvement corrections
+
+となる。
+
+## 10. exterior と最終 smooth forcing
+
+active radial profile の外側では、exact な純方位角 heat-flow exterior が保たれる。Section 3.1 から式 (4.29) を参照。この領域では momentum residual は0。
+
+Section 10 では local construction を物理空間・時間で局所化する。
+
+- Proposition 10.1: vector potential レベルで空間 cut-off を行い、非圧縮性を保存
+- 時間 cut-off により初期速度を0にする
+- 最終 force は局所化された `(u,p)` の Navier–Stokes momentum residual として定義
+- Lemma 10.3: `t=1` をまたぐ smooth extension と compact space-time support
+
+したがって faithful reproduction では forcing を独立に近似するのではなく、完成した `(u,p)` から残差として計算する。
+
+一般粘性では Section 3 の scaling
+
+`u_nu(x,t) = sqrt(nu) u(x/sqrt(nu),t)`
+
+`p_nu(x,t) = nu p(x/sqrt(nu),t)`
+
+`f_nu(x,t) = sqrt(nu) f(x/sqrt(nu),t)`
+
+を使う。
+
+## 11. 数値的に検証可能な不変量・診断量
+
+論文抽出から、次の回帰階層が得られる。
+
+1. `q(z,tau)` を解き、式 (3.2)/(4.1) を再構成
+2. `T_b`, `Z_b` を有限差分または自動微分と比較
+3. tabulated `E,U` から `V0,Pi` を計算し、Cartesian divergence と radial pressure balance を検証
+4. 式 (4.4)–(4.5) による軸上正則性を確認
+5. `r = sqrt(2 X_in tau), z=0` 経路で指数 `-A` を fit
+6. inner / active annulus / heat exterior ごとに momentum residual を評価
+7. waves 実装後、background residual と averaged quadratic wave stress のキャンセルを測定
+8. `tau -> 0` で最終 residual とその微分を追跡し、単に小さいだけでなく smooth/flat であることを確認
+
+## 12. 現在の実装境界
+
+論文から式番号まで固定できており、推測なしで実装してよい項目:
+
+- 類似座標: (3.2), (4.1)
+- 微分作用素: Lemma 4.1, (4.2)
+- leading velocity / pressure ansatz: (4.3)–(4.5)
+- radial averaging、非圧縮条件、pressure balance: (4.6)–(4.7)
+- active annulus と leading-profile 性質: (4.24), Theorem 4.6
+- blow-up sampling path: Theorem 3.1(iv), Proposition 9.9
+- localization / final forcing: Proposition 10.1, Lemma 10.3
+
+現在、類似座標は実装済み。
+
+次に実装する順序:
+
+1. Lemma 4.1 の `T_b`, `Z_b`
+2. `A_X`、`V0`、`Pi`
+3. axis regularity
+4. 式 (4.8)–(4.11) の stress 定義を追加抽出
+5. Sections 6–7 の pulse coordinate / phase / amplitude
+6. Propositions 7.5–7.6 の stress realization
+
+oscillatory realization は依存式が多いため、前段の数値部品を独立に検証してから進める。
