@@ -122,5 +122,16 @@ int main(int argc,char**argv){
     if(n<8||n%2!=0||final_time<=0||dt<=0||nu<=0||snapshots<2)throw std::invalid_argument("invalid arguments");
     int steps=static_cast<int>(std::ceil(final_time/dt)); dt=final_time/steps; Grid g{n}; Fft3d fft(g); auto initial=initial_3d_tg(g); auto uh=make_spectral(g.size()); for(int c=0;c<3;++c)uh[c]=fft.forward(initial[c]); project_dealias(g,uh);
     std::ofstream out(out_path); if(!out)throw std::runtime_error("failed to open output"); out<<"time,plane,x,y,z,u,v,w,omega_x,omega_y,omega_z,omega_mag\n";
-    int next_snap=0; for(int step=0;step<=steps;++step){double t=step*dt; int target=static_cast<int>(std::llround((snapshots-1)*t/final_time)); if(target>=next_snap){write_snapshot(out,g,fft,uh,t);next_snap=target+1;} if(step<steps)uh=rk4(g,fft,uh,dt,nu);} std::cout<<"wrote 3D Taylor-Green snapshots: "<<out_path<<"\n"; return 0;
+    int next_snap=0;
+    for(int step=0;step<=steps;++step){
+        double t=step*dt;
+        while(next_snap<snapshots){
+            int target_step=static_cast<int>(std::llround(static_cast<double>(next_snap)*steps/(snapshots-1)));
+            if(step<target_step)break;
+            write_snapshot(out,g,fft,uh,t);
+            ++next_snap;
+        }
+        if(step<steps)uh=rk4(g,fft,uh,dt,nu);
+    }
+    std::cout<<"wrote 3D Taylor-Green snapshots: "<<out_path<<"\n"; return 0;
 }
