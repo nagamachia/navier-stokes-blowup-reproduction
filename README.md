@@ -47,6 +47,38 @@ Introduce progressively more of the published construction. Compare theoretical 
 
 If direct resolution becomes the limiting factor, transform to coordinates that keep the shrinking core at approximately fixed computational size.
 
+## Phase 0 quick start
+
+The current executable checks only the asymptotic core-scaling algebra. It is intentionally **not** a Navier–Stokes solver.
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/core_scaling
+```
+
+Optional arguments are
+
+```bash
+./build/core_scaling <h> <decades> <samples_per_decade> <output.csv>
+```
+
+For example:
+
+```bash
+./build/core_scaling 0.005 8 20 core_scaling.csv
+```
+
+The default experiment checks that the shrinking-core estimate gives
+
+`U ~ tau^(-0.505)`
+
+while
+
+`E_core ~ tau^(0.485)`.
+
+The velocity scale therefore grows as `tau -> 0`, while this core-energy estimate decreases.
+
 ## What counts as success?
 
 The first milestone is deliberately modest: reproduce predicted pre-singular scaling over an increasing time interval as numerical resolution increases. A finite-resolution computation cannot demonstrate an actual infinite velocity at the singular time.
@@ -54,10 +86,13 @@ The first milestone is deliberately modest: reproduce predicted pre-singular sca
 ## Upstream material
 
 - OpenAI announcement: https://openai.com/index/navier-stokes-solution/
+- OpenAI paper: https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf
 - OpenAI formalization repository: https://github.com/openai/NavierStokesAndEuler
 
-The exact paper equations used by code in this repository will be recorded with section/equation references in `docs/theory.md` before implementation.
+Theory/source notes are maintained in `docs/theory.md`. Exact similarity profiles and forcing will not be implemented until their definitions are pinned to the paper rather than inferred from secondary summaries.
 
 ## Status
 
-**Step 1 in progress:** extract a minimal, auditable paper-to-code specification.
+- **Step 1:** initial auditable theory extraction complete; exact PDF equation-number pinning remains before full-profile implementation.
+- **Step 2:** minimal core-scaling executable added.
+- **Next:** run and validate the executable locally, then add a tiny automated regression test before introducing FFTW or a PDE solver.
