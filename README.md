@@ -1,133 +1,134 @@
 # Navier–Stokes Blow-up Reproduction
 
-A low-cost numerical exploration of the finite-time singularity construction announced by OpenAI for the 3D incompressible Navier–Stokes equations.
+OpenAI が発表した 3 次元非圧縮 Navier–Stokes 方程式の有限時間特異性構成を、個人計算機で追跡可能な範囲から段階的に数値検証するプロジェクトです。
 
 > [!IMPORTANT]
-> This repository is an independent numerical exploration. It does **not** claim to prove, formally verify, or independently validate the announced mathematical result. The goal is to reproduce and study numerically accessible pre-singular scaling and cancellation mechanisms.
+> このリポジトリは独立した数値実験です。数学的証明、形式検証、あるいは発表結果の独立な厳密検証を主張するものではありません。目的は、特異時刻直前のスケーリング、座標変換、残差キャンセル構造を数値的に追跡することです。
 
-## Goals
+## 目標
 
-1. Extract the numerically relevant construction from the published proof.
-2. Reproduce the self-similar core scaling before building a full CFD solver.
-3. Build and validate a small 3D incompressible pseudo-spectral solver.
-4. Compare 64^3, 128^3, and 256^3 runs on a personal computer.
-5. Measure maximum velocity, maximum vorticity, energy, enstrophy, dissipation, and residuals.
-6. Investigate whether dynamic rescaling can follow the shrinking core more efficiently than brute-force DNS.
+1. 論文から数値実装に必要な定義・式・仮定を式番号付きで抽出する。
+2. 完全な PDE ソルバの前に、自己相似コアのスケーリングと類似座標を検証する。
+3. 小型の 3D 周期擬スペクトル Navier–Stokes ソルバを構築・検証する。
+4. 64^3、128^3、必要なら 256^3 の解像度比較を行う。
+5. 最大速度、最大渦度、運動エネルギー、エンストロフィー、散逸、発散誤差、PDE 残差、CFL を追跡する。
+6. 直接 DNS が非効率になった場合は動的リスケーリングを検討する。
 
-## Constraints
+## 設計方針
 
-The project deliberately targets inexpensive personal computing:
+- CPU 優先
+- C++20 / FP64
+- FFTW を使用
+- まず単一ノード・個人 PC で検証
+- GPU / MPI / クラウド HPC は、具体的なボトルネックが確認されてから導入
+- 解像度を上げる前に、低解像度で実装誤差・時間刻み誤差を潰す
 
-- CPU first; no GPU requirement
-- C++20
-- FP64
-- OpenMP for shared-memory parallelism
-- FFTW for practical spectral transforms
-- MPI only if a later experiment genuinely requires multiple nodes
+## 現在の構成
 
-## Roadmap
+### 論文由来の類似座標
 
-### Phase 0 — Paper-to-code
+OpenAI 論文の式 (3.2)/(4.1) に対応して
 
-Extract definitions, coordinates, scaling laws, assumptions, and observables from the published construction. Implement the smallest possible model of the self-similar core without solving the full Navier–Stokes PDE.
+`tau = q (1 - eta^2)`
 
-### Phase 1 — Numerical infrastructure
+`z = q^(1/2-h) eta`
 
-Add tests, CSV output, reproducible parameter files, and basic convergence analysis.
+`X = r^2 / (2q)`
 
-### Phase 2 — Incompressible solver
+を扱います。`include/similarity_coordinates.hpp` には、与えられた `(z, tau)` から
 
-Implement a periodic 3D Fourier pseudo-spectral Navier–Stokes solver with 2/3 dealiasing and validate it against standard test cases such as Taylor–Green vortex.
+`q - z^2 / q^(2h) = tau`
 
-### Phase 3 — Blow-up construction
+を数値的に解く実装があります。`tests/similarity_coordinates.cpp` で元の恒等式へ戻ることを回帰テストしています。
 
-Introduce progressively more of the published construction. Compare theoretical scaling with numerical measurements and explicitly measure the cancellation/residual terms.
+### 擬スペクトルソルバ検証
 
-### Phase 4 — Dynamic rescaling
+CTest では以下を順に検証しています。
 
-If direct resolution becomes the limiting factor, transform to coordinates that keep the shrinking core at approximately fixed computational size.
+1. Fourier 微分
+2. 発散ゼロ射影
+3. 2/3 dealiasing
+4. 既知 Fourier モードの粘性減衰
+5. Taylor–Green vortex 回帰
+6. FFTW 版 Taylor–Green smoke test
+7. 類似座標の逆変換回帰
 
-## Phase 0 quick start
-
-The core-scaling executable checks only the asymptotic scaling algebra. It is intentionally **not** a Navier–Stokes solver.
+実行:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/core_scaling
-```
-
-Optional arguments are
-
-```bash
-./build/core_scaling <h> <decades> <samples_per_decade> <output.csv>
-```
-
-For example:
-
-```bash
-./build/core_scaling 0.005 8 20 core_scaling.csv
-```
-
-The default experiment checks that the shrinking-core estimate gives
-
-`U ~ tau^(-0.505)`
-
-while
-
-`E_core ~ tau^(0.485)`.
-
-The velocity scale therefore grows as `tau -> 0`, while this core-energy estimate decreases.
-
-## Solver verification
-
-CTest covers the verification sequence in `docs/roadmap.md`:
-
-1. Fourier differentiation on a periodic trigonometric function.
-2. Spectral divergence-free projection, including idempotence and non-increasing modal energy.
-3. 2/3 dealiasing using a deliberately aliased quadratic product.
-4. Viscous decay of an incompressible Fourier mode against its analytic decay law.
-5. A small 3D direct-DFT pseudo-spectral Taylor–Green regression using RK4, projection, rotational-form nonlinearity, and 2/3 dealiasing.
-
-The direct DFT implementation is intentionally tiny and auditable. A separate FFTW implementation carries the same conventions into practical grid sizes and is also covered by a CI smoke test.
-
-Run all checks with
-
-```bash
 ctest --test-dir build --output-on-failure
 ```
 
-## FFTW resolution-study runner
-
-Install FFTW development headers before configuring on Debian/Ubuntu:
+Debian/Ubuntu では事前に
 
 ```bash
 sudo apt-get install libfftw3-dev
 ```
 
-Then a first 64^3 Taylor–Green baseline can be run with
+が必要です。
+
+## 実験結果を見る
+
+GitHub Actions は main 更新時に小さな基準計算を自動実行し、結果をリポジトリへ保存します。
+
+- 生データ: `results/reference/`
+- 図: `results/figures/`
+- 最新レポート: `reports/latest.md`
+
+特に以下の図を GitHub 上で直接確認できます。
+
+- `results/figures/taylor_green_energy.svg`
+- `results/figures/taylor_green_errors.svg`
+- `results/figures/similarity_coordinate_error.svg`
+
+最新のまとめは [reports/latest.md](reports/latest.md) を参照してください。
+
+## FFTW 解像度実験
+
+例として 64^3 の Taylor–Green 基準計算は
 
 ```bash
 ./build/fftw_taylor_green 64 0.1 0.001 0.1 taylor_green_64.csv
 ```
 
-The CSV records maximum velocity, maximum vorticity, kinetic energy, enstrophy, viscous dissipation, divergence error, a discrete PDE consistency residual, projected nonlinear magnitude, timestep, and CFL number. The full Step 4 protocol and the criteria for moving from 64^3 to 128^3 and 256^3 are documented in `docs/resolution-study.md`.
+で実行できます。
 
-## What counts as success?
+CSV には以下を出力します。
 
-The first milestone is deliberately modest: reproduce predicted pre-singular scaling over an increasing time interval as numerical resolution increases. A finite-resolution computation cannot demonstrate an actual infinite velocity at the singular time.
+- 最大速度
+- 最大渦度
+- 運動エネルギー
+- エンストロフィー
+- 粘性散逸
+- 発散 L2 誤差
+- 離散 PDE 残差
+- 射影後非線形項 L2
+- 時間刻み
+- CFL
 
-## Upstream material
+64^3 → 128^3 → 256^3 の昇格条件は `docs/resolution-study.md` に記載しています。
 
-- OpenAI announcement: https://openai.com/index/navier-stokes-solution/
-- OpenAI paper: https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf
-- OpenAI formalization repository: https://github.com/openai/NavierStokesAndEuler
+## ドキュメント
 
-Theory/source notes are maintained in `docs/theory.md`. Exact similarity profiles and forcing will not be implemented until their definitions are pinned to the paper rather than inferred from secondary summaries.
+- `docs/theory.md`: 論文から抽出した数式・式番号・実装境界
+- `docs/roadmap.md`: 開発順序
+- `docs/resolution-study.md`: 解像度実験手順
+- `reports/latest.md`: CI が生成する最新数値レポート
 
-## Status
+以後、説明文書と自動レポートは原則として日本語で管理します。
 
-- **Step 1:** initial auditable theory extraction complete; exact PDF equation-number pinning remains before full-profile implementation.
-- **Step 2:** minimal core-scaling executable and release-active regression check complete.
-- **Step 3:** all five solver-verification checks in `docs/roadmap.md` are implemented and passing in CI using an auditable direct-DFT reference implementation.
-- **Step 4:** FFTW-backed 3D runner, required diagnostics, CI smoke regression, and the resolution-study protocol are in place. The next numerical milestone is a controlled 64^3 baseline and timestep-convergence study before considering 128^3.
+## 現在の進捗
+
+- **Step 1:** 論文から類似座標、微分作用素、leading field、非圧縮条件、圧力、active annulus、最終 forcing 構成まで式番号付きで抽出済み。
+- **Step 2:** コアスケーリング実験済み。
+- **Step 3:** Fourier 微分、射影、2/3 dealiasing、粘性減衰、Taylor–Green 回帰が CI で通過。
+- **Step 4 基盤:** FFTW 版 3D 実行系、診断量、CSV 出力、可視化・レポート自動生成まで実装済み。
+- **論文構成の実装:** 式 (3.2)/(4.1) の類似座標ソルバを実装済み。次は Lemma 4.1 の `T_b`, `Z_b` と式 (4.6)–(4.7) の `V0`, `Pi` を実装する。
+
+## 原典
+
+- OpenAI 発表: https://openai.com/index/navier-stokes-solution/
+- 論文: https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf
+- 形式化リポジトリ: https://github.com/openai/NavierStokesAndEuler
