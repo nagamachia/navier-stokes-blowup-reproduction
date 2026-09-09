@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 
@@ -10,7 +9,15 @@ bool approx(double a, double b, double rel_tol = 1e-12) {
     return std::abs(a - b) <= rel_tol * scale;
 }
 
+bool require(bool condition, const char* message) {
+    if (!condition) {
+        std::cerr << "core scaling regression failed: " << message << '\n';
+        return false;
+    }
+    return true;
 }
+
+}  // namespace
 
 int main() {
     const double h = 0.005;
@@ -22,17 +29,24 @@ int main() {
     const double volume = lr * lr * lz;
     const double energy = u * u * volume;
 
-    assert(approx(lr, std::pow(tau, 0.5)));
-    assert(approx(lz, std::pow(tau, 0.5 - h)));
-    assert(approx(u, std::pow(tau, -0.5 - h)));
-    assert(approx(energy, std::pow(tau, 0.5 - 3.0 * h)));
+    bool ok = true;
+    ok = require(approx(lr, std::pow(tau, 0.5)), "radial length scale") && ok;
+    ok = require(approx(lz, std::pow(tau, 0.5 - h)), "axial length scale") && ok;
+    ok = require(approx(u, std::pow(tau, -0.5 - h)), "velocity scale") && ok;
+    ok = require(
+        approx(energy, std::pow(tau, 0.5 - 3.0 * h)),
+        "core energy power law") && ok;
 
     const double tau2 = 1e-6;
     const double u2 = std::pow(tau2, -0.5 - h);
     const double e2 = std::pow(tau2, 0.5 - 3.0 * h);
 
-    assert(u2 > u);
-    assert(e2 < energy);
+    ok = require(u2 > u, "velocity should grow as tau decreases") && ok;
+    ok = require(e2 < energy, "core energy should decrease as tau decreases") && ok;
+
+    if (!ok) {
+        return 1;
+    }
 
     std::cout << "core scaling regression checks passed\n";
     return 0;
