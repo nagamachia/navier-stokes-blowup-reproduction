@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfftw3-dev
+          sudo apt-get install -y libfftw3-dev python3-pil
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -39,6 +39,7 @@ jobs:
           mkdir -p results/reference results/figures reports
           ./build/fftw_taylor_green 16 0.1 0.005 0.1 results/reference/taylor_green_n16.csv
           ./build/taylor_green_snapshots 32 0.1 0.0025 0.1 results/reference/taylor_green_numerical_snapshots_n32.csv
+          ./build/fftw_taylor_green_3d 24 0.5 0.002 0.01 results/reference/taylor_green_3d_snapshots_n24.csv 21
           ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
@@ -47,13 +48,15 @@ jobs:
             results/reference/taylor_green_n16.csv 0.1
           python3 scripts/generate_taylor_green_evolution.py \
             results/reference/taylor_green_numerical_snapshots_n32.csv
+          python3 scripts/generate_taylor_green_3d_gif.py \
+            results/reference/taylor_green_3d_snapshots_n24.csv
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f results/reference/*.csv results/reference/*.vtk results/figures/*.svg reports/*.md
+          git add -f results/reference/*.csv results/reference/*.vtk results/figures/*.svg results/figures/*.gif reports/*.md
           if git diff --cached --quiet; then
             echo "No generated result changes"
             exit 0
