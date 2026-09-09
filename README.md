@@ -41,9 +41,19 @@ OpenAI 論文の式 (3.2)/(4.1) に対応して
 
 を数値的に解く実装があります。`tests/similarity_coordinates.cpp` で元の恒等式へ戻ることを回帰テストしています。
 
+### Lemma 4.1 の微分作用素
+
+`include/similarity_operators.hpp` に式 (4.2) の
+
+`T_b f`
+
+`Z_b f`
+
+を実装しています。`tests/similarity_operators.cpp` では、任意の manufactured profile を使って、物理座標で直接計算した有限差分 `partial_t`, `partial_z` と照合します。
+
 ### 擬スペクトルソルバ検証
 
-CTest では以下を順に検証しています。
+CTest では以下を検証しています。
 
 1. Fourier 微分
 2. 発散ゼロ射影
@@ -52,6 +62,7 @@ CTest では以下を順に検証しています。
 5. Taylor–Green vortex 回帰
 6. FFTW 版 Taylor–Green smoke test
 7. 類似座標の逆変換回帰
+8. Lemma 4.1 の `T_b`, `Z_b` 有限差分回帰
 
 実行:
 
@@ -125,7 +136,7 @@ CSV には以下を出力します。
 - **Step 2:** コアスケーリング実験済み。
 - **Step 3:** Fourier 微分、射影、2/3 dealiasing、粘性減衰、Taylor–Green 回帰が CI で通過。
 - **Step 4 基盤:** FFTW 版 3D 実行系、診断量、CSV 出力、可視化・レポート自動生成まで実装済み。
-- **論文構成の実装:** 式 (3.2)/(4.1) の類似座標ソルバを実装済み。次は Lemma 4.1 の `T_b`, `Z_b` と式 (4.6)–(4.7) の `V0`, `Pi` を実装する。
+- **論文構成の実装:** 式 (3.2)/(4.1) の類似座標と Lemma 4.1 の `T_b`, `Z_b` を実装済み。次は式 (4.6)–(4.7) の radial average `A_X`、`V0`、`Pi` を実装する。
 
 ## 原典
 
