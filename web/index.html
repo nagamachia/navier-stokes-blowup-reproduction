@@ -7,6 +7,14 @@
   <style>
     :root{color-scheme:dark;background:#0b1020;color:#eef2ff;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}header{padding:14px 16px;background:#111827;border-bottom:1px solid #334155}h1{font-size:18px;margin:0 0 4px}.sub{font-size:12px;color:#94a3b8}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:#0f172a}.controls label{font-size:12px;color:#cbd5e1}.controls select,.controls input{width:100%;margin-top:4px;min-height:40px}#viewport{height:62vh;min-height:360px;touch-action:none}.status{padding:8px 12px;font-size:12px;color:#cbd5e1;background:#111827}.info{padding:12px 16px;font-size:13px;line-height:1.6;color:#cbd5e1}.info img{max-width:100%;border-radius:8px;margin-top:8px}@media(max-width:520px){.controls{grid-template-columns:1fr}#viewport{height:58vh}}
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
 <header><h1>Taylor–Green Web Viewer</h1><div class="sub">Android の Chrome から VTK 速度場を直接確認できます</div></header>
