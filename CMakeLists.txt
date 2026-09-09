@@ -22,5 +22,9 @@ enable_project_warnings(fourier_diff_1d)
 add_executable(test_core_scaling tests/test_core_scaling.cpp)
 enable_project_warnings(test_core_scaling)
 
+add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
+enable_project_warnings(test_divergence_free_projection)
+
 add_test(NAME core_scaling_regression COMMAND test_core_scaling)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
+add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
