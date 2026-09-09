@@ -43,28 +43,25 @@ OpenAI 論文の式 (3.2)/(4.1) に対応して
 
 ### Lemma 4.1 の微分作用素
 
-`include/similarity_operators.hpp` に式 (4.2) の
+`include/similarity_operators.hpp` に式 (4.2) の `T_b`, `Z_b` を実装しています。`tests/similarity_operators.cpp` では manufactured profile を使い、物理座標の有限差分 `partial_t`, `partial_z` と照合します。
 
-`T_b f`
+### 式 (4.6)–(4.7) の leading profile 関係
 
-`Z_b f`
+`include/leading_profile_relations.hpp` に以下の汎用数値部品を実装しています。
 
-を実装しています。`tests/similarity_operators.cpp` では、任意の manufactured profile を使って、物理座標で直接計算した有限差分 `partial_t`, `partial_z` と照合します。
+- radial average `A_X`
+- `U`, `partial_eta U` からの `V0`
+- 軸正則形 `E=sqrt(2X)F` を使った pressure integral `Pi`
+
+`tests/leading_profile_relations.cpp` では polynomial / exponential manufactured profile に対して解析値と比較します。
+
+### Leading stress
+
+式 (4.8)–(4.11) の `H,F,l,W,H_c,S_q,S_n,Q_s,N_s,T_0` は、論文PDFから直接抽出して `docs/leading-stress.md` に整理済みです。次はこの部分の数値実装です。
 
 ### 擬スペクトルソルバ検証
 
-CTest では以下を検証しています。
-
-1. Fourier 微分
-2. 発散ゼロ射影
-3. 2/3 dealiasing
-4. 既知 Fourier モードの粘性減衰
-5. Taylor–Green vortex 回帰
-6. FFTW 版 Taylor–Green smoke test
-7. 類似座標の逆変換回帰
-8. Lemma 4.1 の `T_b`, `Z_b` 有限差分回帰
-
-実行:
+CTest では Fourier 微分、発散ゼロ射影、2/3 dealiasing、既知 Fourier モードの粘性減衰、Taylor–Green vortex、FFTW smoke test、類似座標、類似微分作用素、leading-profile relation を回帰検証します。
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -88,7 +85,7 @@ GitHub Actions は main 更新時に小さな基準計算を自動実行し、�
 - 図: `results/figures/`
 - 最新レポート: `reports/latest.md`
 
-特に以下の図を GitHub 上で直接確認できます。
+GitHub 上で直接確認できる図:
 
 - `results/figures/taylor_green_energy.svg`
 - `results/figures/taylor_green_errors.svg`
@@ -98,46 +95,34 @@ GitHub Actions は main 更新時に小さな基準計算を自動実行し、�
 
 ## FFTW 解像度実験
 
-例として 64^3 の Taylor–Green 基準計算は
+64^3 の Taylor–Green 基準計算例:
 
 ```bash
 ./build/fftw_taylor_green 64 0.1 0.001 0.1 taylor_green_64.csv
 ```
 
-で実行できます。
-
-CSV には以下を出力します。
-
-- 最大速度
-- 最大渦度
-- 運動エネルギー
-- エンストロフィー
-- 粘性散逸
-- 発散 L2 誤差
-- 離散 PDE 残差
-- 射影後非線形項 L2
-- 時間刻み
-- CFL
+CSV には最大速度、最大渦度、運動エネルギー、エンストロフィー、粘性散逸、発散 L2、離散 PDE 残差、射影後非線形項 L2、時間刻み、CFL を出力します。
 
 64^3 → 128^3 → 256^3 の昇格条件は `docs/resolution-study.md` に記載しています。
 
 ## ドキュメント
 
 - `docs/theory.md`: 論文から抽出した数式・式番号・実装境界
+- `docs/leading-stress.md`: 式 (4.8)–(4.11) の stress 定義
 - `docs/roadmap.md`: 開発順序
 - `docs/resolution-study.md`: 解像度実験手順
 - `docs/progress.md`: 実装済み範囲と次の対象
 - `reports/latest.md`: CI が生成する最新数値レポート
 
-以後、説明文書と自動レポートは原則として日本語で管理します。
+説明文書と自動レポートは原則として日本語で管理します。
 
 ## 現在の進捗
 
-- **Step 1:** 論文から類似座標、微分作用素、leading field、非圧縮条件、圧力、active annulus、最終 forcing 構成まで式番号付きで抽出済み。
+- **Step 1:** 類似座標、微分作用素、leading field、非圧縮条件、圧力、leading stress、active annulus、最終 forcing 構成まで式番号付きで抽出中。
 - **Step 2:** コアスケーリング実験済み。
 - **Step 3:** Fourier 微分、射影、2/3 dealiasing、粘性減衰、Taylor–Green 回帰が CI で通過。
-- **Step 4 基盤:** FFTW 版 3D 実行系、診断量、CSV 出力、可視化・レポート自動生成まで実装済み。
-- **論文構成の実装:** 式 (3.2)/(4.1) の類似座標と Lemma 4.1 の `T_b`, `Z_b` を実装済み。次は式 (4.6)–(4.7) の radial average `A_X`、`V0`、`Pi` を実装する。
+- **Step 4 基盤:** FFTW 版 3D 実行系、診断量、CSV、SVG可視化、自動レポート生成を実装済み。
+- **論文構成の実装:** 式 (3.2)/(4.1)、Lemma 4.1、式 (4.6)–(4.7) の汎用数値部品まで実装済み。次は式 (4.8)–(4.11) の leading stress を実装する。
 
 ## 原典
 
