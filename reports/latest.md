@@ -1,12 +1,13 @@
 # 最新の自動計算レポート
 
-このレポートは GitHub Actions で自動生成されます。対象コミット: `654a6ac455f6`
+このレポートは GitHub Actions で自動生成されます。対象コミット: `27013dd2a5f1`
 
 ## 実施した計算
 
 - FFTW 版 Taylor–Green 基準計算
 - OpenAI 論文の式 (3.2)/(4.1) に対応する類似座標 `q, eta, X` の再構成テスト
 - Lemma 4.1, 式 (4.2) の `T_b`, `Z_b` と物理座標有限差分の照合
+- 式 (4.6)–(4.7) の `A_X`, `V0`, `Pi` 数値部品の manufactured-profile 回帰
 - Fourier 微分・非圧縮射影・2/3 dealiasing・粘性減衰・Taylor–Green 回帰
 
 ## Taylor–Green 基準計算の要約
@@ -38,6 +39,8 @@
 
 ## 解釈
 
-現在は、論文固有の座標変換と Lemma 4.1 の微分作用素まで実装しています。次の実装対象は式 (4.6)–(4.7) に基づく radial average `A_X`、`V0`、`Pi` の再構成です。exact profile `E,U` 自体は Theorem 4.6 と Appendices A/B の構成を数値化してから導入します。
+論文固有の座標変換、Lemma 4.1 の微分作用素、式 (4.6)–(4.7) の radial average・非圧縮 radial flux・pressure integration の汎用数値部品まで実装しています。式 (4.8)–(4.11) の leading stress は `docs/leading-stress.md` に抽出済みです。
+
+次の段階は、leading stress の数値部品を manufactured profile で検証し、その後 Theorem 4.6 と Appendices A/B の constructive profile を数値化することです。exact profile `E,U` を任意の surrogate で置き換えて OpenAI 構成と呼ぶことはしません。
 
 CSV の生データは `results/reference/` に保存されています。
