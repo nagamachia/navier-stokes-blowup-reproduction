@@ -6,21 +6,25 @@
 
 namespace nsblowup {
 
+// Appendix A.2 has the hierarchy Td=exp(Md)+10, P*>exp(Td),
+// h<exp(-Td). P* and h therefore cannot in general be stored directly
+// in IEEE double. Keep their logarithms for schedule validation.
 struct OuterProfileParameters {
-    double Md{40.0};
-    double Pstar{1.0};
+    double Md{4.0};
+    double log_Pstar{70.0};
     double lambda{0.02};
-    double h{1.0e-4};
+    double log_h{-80.0};
 
     double Td() const { return std::exp(Md) + 10.0; }
     double Tw() const { return 60.0 * std::log(1.0 / lambda); }
 
     void validate() const {
         if (!(Md > 0.0)) throw std::invalid_argument("Md must be positive");
-        if (!(Pstar > std::exp(Td()))) throw std::invalid_argument("A.6 requires Pstar > exp(Td)");
         if (!(lambda > 0.0 && lambda < 1.0)) throw std::invalid_argument("lambda must lie in (0,1)");
-        if (!(h > 0.0 && h < std::min({0.01, lambda, std::exp(-Td())})))
-            throw std::invalid_argument("A.6 requires h < min(1/100, lambda, exp(-Td))");
+        const double td = Td();
+        if (!(log_Pstar > td)) throw std::invalid_argument("A.6 requires log(Pstar) > Td");
+        if (!(log_h < std::min({std::log(0.01), std::log(lambda), -td})))
+            throw std::invalid_argument("A.6 requires log(h) < min(log(1/100),log(lambda),-Td)");
     }
 };
 
@@ -33,15 +37,18 @@ inline double appendix_a_smooth_step(double y) {
     return a / (a + b);
 }
 
-inline double outer_shape_f(double eta) {
-    return 1.0 / (1.0 + eta * eta);
-}
+inline double outer_shape_f(double eta) { return 1.0 / (1.0 + eta * eta); }
 
-// Equation (A.7), x=X/XR <= 1.
+// Equation (A.7), x=X/XR <= 1. A logarithmic form is supplied for
+// theorem-scale amplitudes; the direct form is convenient for normalized tests.
 inline double outer_reference_U(double eta) { return 4.0 * eta; }
-inline double outer_reference_E(double x, double eta, double Pstar) {
+inline double log_outer_reference_E(double x, double eta, double log_Pstar) {
     if (!(x > 0.0 && x <= 1.0)) throw std::invalid_argument("reference x must be in (0,1]");
-    return Pstar * outer_shape_f(eta) * std::pow(x, 0.1);
+    return log_Pstar + std::log(outer_shape_f(eta)) + 0.1 * std::log(x);
+}
+inline double outer_reference_E(double x, double eta, double Pstar) {
+    if (!(Pstar > 0.0)) throw std::invalid_argument("Pstar must be positive");
+    return std::exp(log_outer_reference_E(x, eta, std::log(Pstar)));
 }
 
 // First logarithmic stage after x=1: l=(3/5)(1-sigma(y)), 0<=y<=1.
