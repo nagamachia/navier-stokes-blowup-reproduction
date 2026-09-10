@@ -1,0 +1,84 @@
+#pragma once
+
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
+namespace nsblowup {
+
+struct OuterProfileParameters {
+    double Md{40.0};
+    double Pstar{1.0};
+    double lambda{0.02};
+    double h{1.0e-4};
+
+    double Td() const { return std::exp(Md) + 10.0; }
+    double Tw() const { return 60.0 * std::log(1.0 / lambda); }
+
+    void validate() const {
+        if (!(Md > 0.0)) throw std::invalid_argument("Md must be positive");
+        if (!(Pstar > std::exp(Td()))) throw std::invalid_argument("A.6 requires Pstar > exp(Td)");
+        if (!(lambda > 0.0 && lambda < 1.0)) throw std::invalid_argument("lambda must lie in (0,1)");
+        if (!(h > 0.0 && h < std::min({0.01, lambda, std::exp(-Td())})))
+            throw std::invalid_argument("A.6 requires h < min(1/100, lambda, exp(-Td))");
+    }
+};
+
+// Equation (A.5).
+inline double appendix_a_smooth_step(double y) {
+    if (y <= 0.0) return 0.0;
+    if (y >= 1.0) return 1.0;
+    const double a = std::exp(-1.0 / (y * y));
+    const double b = std::exp(-1.0 / ((1.0 - y) * (1.0 - y)));
+    return a / (a + b);
+}
+
+inline double outer_shape_f(double eta) {
+    return 1.0 / (1.0 + eta * eta);
+}
+
+// Equation (A.7), x=X/XR <= 1.
+inline double outer_reference_U(double eta) { return 4.0 * eta; }
+inline double outer_reference_E(double x, double eta, double Pstar) {
+    if (!(x > 0.0 && x <= 1.0)) throw std::invalid_argument("reference x must be in (0,1]");
+    return Pstar * outer_shape_f(eta) * std::pow(x, 0.1);
+}
+
+// First logarithmic stage after x=1: l=(3/5)(1-sigma(y)), 0<=y<=1.
+inline double outer_l_first_transition(double y) {
+    return 0.6 * (1.0 - appendix_a_smooth_step(y));
+}
+
+// Axial-decay stage from A.2: l=0 and U=k(y) eta, 0<=y<=Td.
+inline double outer_axial_k(double y, double Md) {
+    if (y < 0.0) throw std::invalid_argument("axial-stage y must be non-negative");
+    return 4.0 * (1.0 - appendix_a_smooth_step(std::log1p(y) / Md));
+}
+inline double outer_axial_U(double y, double eta, double Md) {
+    return outer_axial_k(y, Md) * eta;
+}
+
+// Intermediate power-law stage, equation (A.9).
+inline double outer_l_intermediate_entry(double y, double lambda) {
+    return -lambda * appendix_a_smooth_step(y);
+}
+inline double outer_l_intermediate(double lambda) { return -lambda; }
+
+struct ReservedPatchesA9 {
+    double profile_a, profile_b;
+    double heat_a, heat_b;
+    double positive_a, positive_b;
+    double mean_a, mean_b;
+};
+
+inline ReservedPatchesA9 reserved_patches_a9(double lambda) {
+    if (!(lambda > 0.0 && lambda < 1.0)) throw std::invalid_argument("lambda must lie in (0,1)");
+    const double Tw = 60.0 * std::log(1.0 / lambda);
+    if (!(Tw > 25.0)) throw std::invalid_argument("lambda too large for A.9 reserved patches");
+    return {Tw - 25.0, Tw - 20.0,
+            Tw - 20.0, Tw - 15.0,
+            Tw - 14.0, Tw - 9.0,
+            Tw - 8.0, Tw - 3.0};
+}
+
+}  // namespace nsblowup
