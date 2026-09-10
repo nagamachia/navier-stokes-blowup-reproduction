@@ -72,6 +72,10 @@ add_executable(test_profile_moment_patch tests/profile_moment_patch.cpp)
 target_include_directories(test_profile_moment_patch PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_profile_moment_patch)
 
+add_executable(test_outer_profile_stages tests/outer_profile_stages.cpp)
+target_include_directories(test_outer_profile_stages PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_outer_profile_stages)
+
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
 
@@ -92,6 +96,7 @@ add_test(NAME leading_stress_regression COMMAND test_leading_stress)
 add_test(NAME leading_field_axis_regression COMMAND test_leading_field_axis)
 add_test(NAME moment_corrections_regression COMMAND test_moment_corrections)
 add_test(NAME profile_moment_patch_regression COMMAND test_profile_moment_patch)
+add_test(NAME outer_profile_stages_regression COMMAND test_outer_profile_stages)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
