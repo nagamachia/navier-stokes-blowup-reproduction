@@ -30,6 +30,10 @@ add_executable(appendix_a3_diagnostics src/appendix_a3_diagnostics.cpp)
 target_include_directories(appendix_a3_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a3_diagnostics)
 
+add_executable(appendix_a3_global_diagnostics src/appendix_a3_global_diagnostics.cpp)
+target_include_directories(appendix_a3_global_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(appendix_a3_global_diagnostics)
+
 add_executable(fftw_taylor_green src/fftw_taylor_green.cpp)
 target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
