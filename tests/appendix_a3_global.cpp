@@ -14,8 +14,8 @@ int main(){
     p.Md=2.0;
     p.log_Pstar=25.0;
     // Ordered asymptotic regime from (A.6): lambda is chosen only after the
-    // fixed Md,Td,P* data.  The full A.19 regression must therefore use a
-    // genuinely small lambda rather than the larger values used by local tests.
+    // fixed Md,Td,P* data.  The full A.19 regression therefore uses a genuinely
+    // small lambda rather than the larger values appropriate to local tests.
     p.lambda=1.0e-5;
     p.log_h=-40.0;
     p.validate();
