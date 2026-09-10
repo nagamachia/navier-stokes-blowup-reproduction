@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace {
-bool finite(double x){return std::isfinite(x);}
+bool is_finite_value(double x){return std::isfinite(x);}
 }
 
 int main(){
@@ -18,8 +18,8 @@ int main(){
     p.validate();
 
     const auto a=appendix_a3_integrate_to_pulse(p,0.4,0.02);
-    if (!(finite(a.m_at_pulse)&&finite(a.j_at_pulse)&&finite(a.s_at_pulse)&&
-          finite(a.rI_at_pulse)&&finite(a.log_E_at_pulse))) {
+    if (!(is_finite_value(a.m_at_pulse)&&is_finite_value(a.j_at_pulse)&&is_finite_value(a.s_at_pulse)&&
+          is_finite_value(a.rI_at_pulse)&&is_finite_value(a.log_E_at_pulse))) {
         std::cerr<<"non-finite A.14 normalized state\n";
         return 1;
     }
@@ -60,10 +60,10 @@ int main(){
         return 1;
     }
 
-    // Direct global evaluation replaces the manufactured A.19 remainder.
     const auto low=appendix_a3_evaluate_global_closure(p,0.0,0.9,20.0,0.05,0.05);
     const auto high=appendix_a3_evaluate_global_closure(p,0.0,1.2,20.0,0.05,0.05);
-    if (!(finite(low.s_infinity)&&finite(high.s_infinity)&&low.s_infinity<0.0&&high.s_infinity>0.0)) {
+    if (!(is_finite_value(low.s_infinity)&&is_finite_value(high.s_infinity)&&
+          low.s_infinity<0.0&&high.s_infinity>0.0)) {
         std::cerr<<"global S(infinity) root is not bracketed: "<<low.s_infinity<<" "<<high.s_infinity<<"\n";
         return 1;
     }
