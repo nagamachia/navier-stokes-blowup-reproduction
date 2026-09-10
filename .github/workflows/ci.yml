@@ -44,6 +44,7 @@ jobs:
           ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
           ./build/appendix_a3_diagnostics results/reference/appendix_a3_closure.csv
           ./build/appendix_a3_global_diagnostics results/reference/appendix_a3_global.csv
+          ./build/appendix_a4_pressure_diagnostics results/reference/appendix_a4_pressure.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
@@ -60,6 +61,9 @@ jobs:
             results/reference/appendix_a3_closure.csv \
             reports/appendix-a3.md \
             results/reference/appendix_a3_global.csv
+          python3 scripts/generate_appendix_a4_report.py \
+            results/reference/appendix_a4_pressure.csv \
+            reports/appendix-a4-pressure.md
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
