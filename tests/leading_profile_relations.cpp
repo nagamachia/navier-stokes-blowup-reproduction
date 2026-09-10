@@ -68,6 +68,27 @@ int main() {
         }
     }
 
+    // Equation (4.15) manufactured polynomial check in regular variables.
+    // U=a(1+X), F=b are chosen so all five moments are elementary.
+    constexpr double eta = 0.25;
+    constexpr double X = 1.4;
+    const double a = 1.0 + eta * eta;
+    const double b = 2.0 - eta;
+    auto Um = [a](double x, double /*unused*/) { return a * (1.0 + x); };
+    auto Fm = [b](double /*x*/, double /*unused*/) { return b; };
+    const auto m = nsblowup::cumulative_radial_moments(Um, Fm, X, eta, 2048);
+
+    const double exact_M = a * (X + X * X / 2.0);
+    const double exact_I = b * X * X;
+    const double exact_J = 2.0 * a * b * (X * X / 2.0 + X * X * X / 3.0);
+    const double exact_S = a * a * (X + X * X + X * X * X / 3.0) - b * b * X * X / 2.0;
+    const double exact_Cp = b * b * X;
+    if (!close(m.M, exact_M, 2e-10)) return fail("M moment check failed", m.M, exact_M);
+    if (!close(m.I, exact_I, 2e-10)) return fail("I moment check failed", m.I, exact_I);
+    if (!close(m.J, exact_J, 2e-10)) return fail("J moment check failed", m.J, exact_J);
+    if (!close(m.S, exact_S, 2e-10)) return fail("S moment check failed", m.S, exact_S);
+    if (!close(m.Cp, exact_Cp, 2e-10)) return fail("Cp moment check failed", m.Cp, exact_Cp);
+
     std::cout << "leading-profile relation checks passed\n";
     return 0;
 }
