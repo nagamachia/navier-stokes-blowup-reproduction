@@ -1,6 +1,5 @@
 #include "appendix_a3_global.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -19,11 +18,11 @@ int main(){
     p.validate();
 
     const auto a=appendix_a3_integrate_to_pulse(p,0.4,0.02);
-    if (!(finite(a.m_at_pulse)&&finite(a.j_at_pulse)&&finite(a.s_at_pulse)&&finite(a.log_E_at_pulse))) {
+    if (!(finite(a.m_at_pulse)&&finite(a.j_at_pulse)&&finite(a.s_at_pulse)&&
+          finite(a.rI_at_pulse)&&finite(a.log_E_at_pulse))) {
         std::cerr<<"non-finite A.14 normalized state\n";
         return 1;
     }
-    // A.14 predicts strong decay of the normalized M and J discrepancies.
     if (!(std::abs(a.m_at_pulse)<1e-3 && std::abs(a.j_at_pulse)<1e-3)) {
         std::cerr<<"pre-pulse M/J ratios did not decay: "<<a.m_at_pulse<<" "<<a.j_at_pulse<<"\n";
         return 1;
@@ -41,28 +40,46 @@ int main(){
         return 1;
     }
 
-    // Reflection check: E is even in eta and U odd, hence M,J change sign
-    // while S and log E are even.
     const auto b=appendix_a3_integrate_to_pulse(p,-0.4,0.02);
     if (!(std::abs(a.m_at_pulse+b.m_at_pulse)<1e-10 &&
           std::abs(a.j_at_pulse+b.j_at_pulse)<1e-10 &&
           std::abs(a.s_at_pulse-b.s_at_pulse)<1e-10 &&
+          std::abs(a.rI_at_pulse-b.rI_at_pulse)<1e-12 &&
           std::abs(a.log_E_at_pulse-b.log_E_at_pulse)<1e-12)) {
         std::cerr<<"eta reflection symmetry failed\n";
         return 1;
     }
 
-    // Smaller lambda gives a longer A.9 hold and hence a smaller A.14 M ratio.
     OuterProfileParameters q=p;
     q.lambda=0.02;
     q.log_h=-40.0;
     q.validate();
-    const auto c=appendix_a3_integrate_to_pulse(q,0.4,0.02);
+    const auto c=appendix_a3_integrate_to_pulse(q,0.4,0.03);
     if (!(std::abs(c.m_at_pulse)<std::abs(a.m_at_pulse))) {
         std::cerr<<"lambda scaling of pre-pulse M ratio is inconsistent\n";
         return 1;
     }
 
-    std::cout<<"Appendix A.2 -> A.3 global pre-pulse integration checks passed\n";
+    // Direct global evaluation replaces the manufactured A.19 remainder.
+    const auto low=appendix_a3_evaluate_global_closure(p,0.0,0.9,20.0,0.05,0.05);
+    const auto high=appendix_a3_evaluate_global_closure(p,0.0,1.2,20.0,0.05,0.05);
+    if (!(finite(low.s_infinity)&&finite(high.s_infinity)&&low.s_infinity<0.0&&high.s_infinity>0.0)) {
+        std::cerr<<"global S(infinity) root is not bracketed: "<<low.s_infinity<<" "<<high.s_infinity<<"\n";
+        return 1;
+    }
+    const auto global=appendix_a3_solve_global_amplitude(p,0.0,20.0,0.05,0.05,45);
+    if (!(global.amplitude>0.9&&global.amplitude<1.2&&
+          std::abs(global.s_infinity)<1e-8&&
+          std::abs(global.pulse_residual_M)<1e-12&&
+          std::abs(global.pulse_residual_J)<1e-12&&
+          std::abs(global.rI_exterior_start-global.rI_target)<2e-5&&
+          global.exterior_hold_length>0.0&&global.terminal_weight>0.0)) {
+        std::cerr<<"global A.3 closure failed: amp="<<global.amplitude
+                 <<" S="<<global.s_infinity
+                 <<" rIerr="<<(global.rI_exterior_start-global.rI_target)<<"\n";
+        return 1;
+    }
+
+    std::cout<<"Appendix A.2 -> A.3 global closure checks passed\n";
     return 0;
 }
