@@ -64,6 +64,10 @@ add_executable(test_leading_field_axis tests/leading_field_axis.cpp)
 target_include_directories(test_leading_field_axis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_leading_field_axis)
 
+add_executable(test_moment_corrections tests/moment_corrections.cpp)
+target_include_directories(test_moment_corrections PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_moment_corrections)
+
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
 
@@ -82,6 +86,7 @@ add_test(NAME similarity_operators_regression COMMAND test_similarity_operators)
 add_test(NAME leading_profile_relations_regression COMMAND test_leading_profile_relations)
 add_test(NAME leading_stress_regression COMMAND test_leading_stress)
 add_test(NAME leading_field_axis_regression COMMAND test_leading_field_axis)
+add_test(NAME moment_corrections_regression COMMAND test_moment_corrections)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
