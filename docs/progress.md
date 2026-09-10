@@ -35,6 +35,16 @@
 - 式 (4.4)–(4.5): Cartesian 軸正則性
   - `E=sqrt(2X)F`, `V0=Xv0` を使った Cartesian leading field を実装
   - `r -> 0` で transverse velocity が `O(r)`、円柱成分を再構成できることを回帰
+- 式 (4.15): five cumulative radial moments `M,I,J,S,Cp`
+  - regular-axis 変数 `E=sqrt(2X)F` で正則に積分する実装を追加
+  - polynomial manufactured profile で5成分を解析値と照合
+- Appendix A.1, Lemma A.1: finitely many moment adjustments
+  - separated radial bumps と異なる power weights から moment matrix `B_ij` を構成
+  - partial-pivot Gaussian elimination と determinant 診断を実装
+  - 非零 determinant と係数回収を回帰
+- Appendix A.1, Lemma A.2: quadratic moment correction
+  - `F_eta(c)=B(eta)c+Q_eta(c,c)` の zero-start fixed-point branch を実装
+  - small quadratic manufactured system と `Q=0` の線形極限を回帰
 
 ### 数式監査で検出した修正
 
@@ -52,26 +62,25 @@
 
 ### 成果物パイプライン
 
-main 更新時に軽量基準計算を実行し、次を GitHub に残す。
+main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Web Viewer は Android から速度・渦度・Q-criterion・等値面・時間発展を確認できる。
 
-- `results/reference/taylor_green_n16.csv`
-- `results/reference/similarity_coordinates.csv`
-- `results/figures/taylor_green_energy.svg`
-- `results/figures/taylor_green_errors.svg`
-- `results/figures/similarity_coordinate_error.svg`
-- `reports/latest.md`
+## 現在地: Appendix A の constructive profile
 
-## 次の大きな実装対象
+Theorem 4.6 と Appendices A/B/C の constructive profile `E,U,Pi` の数値化に着手した。
 
-Theorem 4.6 と Appendices A/B の constructive profile `E,U,Pi` を数値化する。
+現在、Appendix A.1 と Section 4.2 の共通 matching 基盤まで実装済み。次は Corollary A.3 を直接数値化し、2つの `U` bumps と3つの `E` bumps から5 momentsを同時に修正できることを確認する。
 
-ここから先は generic manufactured profile ではなく論文の実際の profile construction に入るため、次の順で進める。
+順序:
 
-1. Appendix A の outer / heat profile と pressure datum のパラメータ化
-2. Appendix B / Section 4.5 の inner profile と moment matching
-3. cumulative integrals と matching 条件の数値検証
-4. active annulus の admissible stress cone
-5. Theorem 4.6 の profile assembly
+1. **Appendix A.1 moment correction primitives — 実装済み**
+2. **式 (4.15) cumulative moments — 実装済み**
+3. Corollary A.3 の 5-bump exact quadratic moment map — 次の対象
+4. Appendix A.2 の staged outer profile (`U0,E0`) と parameter schedule
+5. pressure datum `Pi0(eta)` と exterior power law
+6. Appendix A.3–A.8 の moment closure / exact heat exterior replacement
+7. Appendix B の analytic axis profile と moment matching
+8. Appendix C の admissible stress cone realization
+9. Theorem 4.6 profile assembly
 
 任意の surrogate profile を OpenAI 構成として扱わない。
 
