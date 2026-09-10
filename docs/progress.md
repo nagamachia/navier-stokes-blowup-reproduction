@@ -26,50 +26,47 @@
 - Appendix A.1, Lemma A.1: finite moment matrix / invertibility
 - Appendix A.1, Lemma A.2: quadratic moment correction
 - Corollary A.3: 2つの `U` bumps + 3つの `E` bumps による five-moment exact quadratic map
-  - 5×5 Jacobian を数値構成
-  - momentごとのスケール差を行正規化
-  - 線形係数回収と非線形 fixed-point 回収を回帰
 - Appendix A.2 staged outer profile の radial primitives
   - (A.5) smooth step `sigma`
   - (A.6) parameter hierarchy を `log P*`, `log h` で安全に表現
   - (A.7) reference inner power law
-  - axial reduction / (A.9) intermediate power law / reserved patches
+  - axial reduction / (A.9) intermediate power law の基準stage
+  - (A.9) に置く4つの reserved correction interval の位置
   - (A.10) profile interpolation
   - (A.12) terminal factor / slope
   - (A.13) `Qp`
-- Appendix A.3 moment closure mechanism
+- Appendix A.3 finite-dimensional moment closure mechanism
   - axial pulse `phi_b`, `R0`
   - (A.15) の2-bump `M=J=0` closure
   - (A.11) の2-bump `I` / pressure increment closure
-  - (A.19) の `Kb` と amplitude root solver
+  - (A.19) の `Kb` と局所 amplitude root solver
   - (A.16) terminal `Qs` representation
   - (A.17) の `h^8`, `h^6` exact factors
   - CIで回帰し、診断CSV/日本語レポートを生成
-- Appendix A.2 → A.3 global pre-pulse integration
-  - temporary reference power law から first transition、axial reduction、(A.9) hold までを1本の正規化ODEとして接続
-  - `m=M/(XE)`, `j=J/(XHE)`, `s=S/(XE^2)` を直接発展させ、巨大な `X` を生成せず (A.14) を評価
-  - A.2 から得た pre-pulse `M,J` discrepancy を (A.15) two-bump closure に直接入力
-  - `eta -> -eta` の対称性と lambda を小さくしたときの discrepancy 減衰を回帰
+- Appendix A.2 → A.3 の基準schedule積分
+  - temporary reference power law → first transition → axial reduction → 未補正の (A.9) hold を正規化ODEで接続
+  - `m=M/(XE)`, `j=J/(XHE)`, `s=S/(XE^2)`, `rI=I/(XH)` を直接発展させる実装
+  - raw `X,M,J,S` を生成せず巨大な対数半径を扱える
+  - 未補正scheduleから得た `M,J` discrepancy を (A.15) two-bump closure に接続
 
 ### 数式監査・数値表現で検出した修正
 
 - 類似座標の消去形は `q - z^2 q^(2h) = tau` と確認し、初期転記を修正した。
 - Corollary A.3 のテストで power weights が重複する退化 exponent を避けるよう修正した。
-- Appendix A.2 の parameter hierarchy `Td=exp(Md)+10`, `P*>exp(Td)`, `h<exp(-Td)` は通常の `double` で `P*`,`h` を直接保持するとオーバーフロー/アンダーフローするため、実装では `log P*`, `log h` を基本表現にした。
-- Appendix A.3 の pulse moments は first bump center で正規化し、`exp(O(1/lambda))` を直接生成しない実装にした。
-- A.2 全体の moment propagation も raw `X,M,J,S` ではなく正規化ODEで実装し、theorem-scale の対数半径に耐えるようにした。
+- Appendix A.2 の巨大パラメータは `log P*`, `log h` を基本表現にした。
+- Appendix A.3 の pulse moments は first bump center で正規化し、`exp(O(1/lambda))` を直接生成しない。
+- A.11 の relative-E correction は局所 moment jump と global slope evolution を二重計上しないよう分離した。
+- **重要:** 未補正の (A.9) hold をそのまま積分すると `S/(XE^2)` が大きな負値へ増幅し、`S(infinity)=0` の amplitude root は `[0.9,1.2]` に現れない。これは論文が (A.9) 内に予約した correction patches をまだ適用していないためであり、A.14 の完成状態として扱ってはいけない。
 
 ### 成果物パイプライン
 
-main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Web Viewer は Android から速度・渦度・Q-criterion・等値面・時間発展を確認できる。
+main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Appendix A.3 は `results/reference/appendix_a3_closure.csv` と `reports/appendix-a3.md` を自動生成する。
 
-Appendix A.3 については `results/reference/appendix_a3_closure.csv` と `reports/appendix-a3.md` を自動生成し、A.2 schedule から直接得た `(A.14)` の正規化量も記録する。
+## 現在地: Appendix A.9 reserved corrections → A.3 global closure
 
-## 現在地: Appendix A.3 global closure
+有限次元の A.3 closure mechanism は実装済み。global schedule については基準stageの正規化積分まで実装したが、A.9 の4つの reserved correction patches をまだ profile に反映していない。
 
-Appendix A.3 の有限次元 closure mechanism に加え、A.2 の radial schedule から axial pulse 開始点までの `(A.14)` pre-pulse discrepancies を直接計算する統合まで完了。
-
-未完なのは、pulse 本体以降の A.10 profile interpolation、A.11 angular correction、exterior transition を同じ正規化状態に接続し、trial amplitude ごとの `S(infinity)` を直接評価する部分。ここが終われば (A.19) の remainder を外部 callback ではなく global schedule そのものから構成できる。
+CIでこの欠落を実際に検出した。未補正scheduleでは `S(infinity)` が amplitude 0.9 と1.2の両方で約 `-9.83e8` となり root が消えるため、full A.3 closure の成功条件から一旦外し、この値を「予約patch未適用の診断」として扱う。
 
 次の順序:
 
@@ -78,16 +75,18 @@ Appendix A.3 の有限次元 closure mechanism に加え、A.2 の radial schedu
 3. **Corollary A.3 five-bump exact quadratic moment map — 実装済み**
 4. **Appendix A.2 radial primitives / (A.10)–(A.13) — 実装済み**
 5. **Appendix A.3 finite-dimensional closure mechanism — 実装済み**
-6. **A.2 → A.3 pre-pulse global schedule / (A.14) direct evaluation — 実装済み**
-7. pulse + A.10 + A.11 + exterior transition を正規化ODEへ接続し、`S(infinity)` / (A.19) remainder を直接評価
-8. A.3 の `Amp(eta)` を global schedule から解き、(A.8) を全区間で確認
-9. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
-10. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
-11. Appendix B analytic axis profile と moment matching
-12. Appendix C admissible stress cone realization
-13. Theorem 4.6 profile assembly
+6. **A.2 基準scheduleの正規化ODE — 実装済み**
+7. **A.9 reserved correction intervals — 位置のみ実装済み**
+8. A.9 の reserved profile/heat/positivity/mean corrections を原典どおり適用し、corrected A.14 state を構成
+9. corrected A.14 → pulse → A.10 → A.11 → exterior transition → terminal tail を接続
+10. global `S(infinity)` の `[0.9,1.2]` root と `Amp(eta)` を直接確認し、(A.8) を全区間で監査
+11. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
+12. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
+13. Appendix B analytic axis profile と moment matching
+14. Appendix C admissible stress cone realization
+15. Theorem 4.6 profile assembly
 
-任意の surrogate profile を OpenAI 構成として扱わない。
+任意の surrogate profile を論文構成そのものとして扱わない。
 
 ## その後
 
