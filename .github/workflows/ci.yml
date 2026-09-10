@@ -42,6 +42,7 @@ jobs:
           ./build/taylor_green_snapshots 32 0.1 0.0025 0.1 results/reference/taylor_green_numerical_snapshots_n32.csv
           ./build/fftw_taylor_green_3d 24 0.5 0.002 0.01 results/reference/taylor_green_3d_snapshots_n24.csv 11 /tmp/taylor_green_3d_full_n24.csv
           ./build/similarity_coordinates 0.005 6 19 results/reference/similarity_coordinates.csv
+          ./build/appendix_a3_diagnostics results/reference/appendix_a3_closure.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
@@ -54,6 +55,9 @@ jobs:
           python3 scripts/generate_taylor_green_3d_series.py \
             /tmp/taylor_green_3d_full_n24.csv \
             results/reference/taylor_green_3d_series
+          python3 scripts/generate_appendix_a3_report.py \
+            results/reference/appendix_a3_closure.csv \
+            reports/appendix-a3.md
 
       - name: Commit generated results
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
