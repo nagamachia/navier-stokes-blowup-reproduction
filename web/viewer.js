@@ -10,7 +10,11 @@ const timeInput=document.getElementById('time'),timeValue=document.getElementByI
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b1020);
 const camera=new THREE.PerspectiveCamera(45,1,.01,1000); camera.position.set(8,8,8);
 const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); root.appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.08; scene.add(new THREE.AxesHelper(1.5));
+const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.08;
+scene.add(new THREE.AxesHelper(1.5));
+scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.5));
+const keyLight=new THREE.DirectionalLight(0xffffff,1.8);keyLight.position.set(6,8,10);scene.add(keyLight);
+
 let fieldObject=null,parsed=null,diagnostics=null,needsFrame=true,series=null,seriesBase='',playing=false,playTimer=null,requestId=0;
 const frameCache=new Map();
 
@@ -21,13 +25,15 @@ function parseLegacyStructuredPoints(text){
   const lines=text.split(/\r?\n/);let dims,origin=[0,0,0],spacing=[1,1,1],vectorStart=-1,count=0;
   for(let i=0;i<lines.length;i++){const line=lines[i].trim();if(line.startsWith('DIMENSIONS '))dims=line.split(/\s+/).slice(1).map(Number);else if(line.startsWith('ORIGIN '))origin=line.split(/\s+/).slice(1).map(Number);else if(line.startsWith('SPACING '))spacing=line.split(/\s+/).slice(1).map(Number);else if(line.startsWith('POINT_DATA '))count=Number(line.split(/\s+/)[1]);else if(line.startsWith('VECTORS ')){vectorStart=i+1;break;}}
   if(!dims||vectorStart<0||!count)throw new Error('対応している VTK STRUCTURED_POINTS / VECTORS を検出できませんでした');
-  const tokens=lines.slice(vectorStart).join(' ').trim().split(/\s+/);const vectors=new Float64Array(count*3);for(let i=0;i<vectors.length;i++){vectors[i]=Number(tokens[i]);if(!Number.isFinite(vectors[i]))throw new Error('VTK velocity vector data is incomplete');}
+  const tokens=lines.slice(vectorStart).join(' ').trim().split(/\s+/),vectors=new Float64Array(count*3);
+  for(let i=0;i<vectors.length;i++){vectors[i]=Number(tokens[i]);if(!Number.isFinite(vectors[i]))throw new Error('VTK velocity vector data is incomplete');}
   return {dims,origin,spacing,count,vectors};
 }
 const idx=(i,j,k,nx,ny)=>(k*ny+j)*nx+i,wrap=(i,n)=>(i+n)%n;
 
 function computeDiagnostics(data){
-  const {dims:[nx,ny,nz],spacing:[dx,dy,dz],vectors}=data,n=nx*ny*nz;const speed=new Float64Array(n),vorticity=new Float64Array(n),qcriterion=new Float64Array(n);let maxSpeed=0,maxVorticity=0,maxQ=0;
+  const {dims:[nx,ny,nz],spacing:[dx,dy,dz],vectors}=data,n=nx*ny*nz;
+  const speed=new Float64Array(n),vorticity=new Float64Array(n),qcriterion=new Float64Array(n);let maxSpeed=0,maxVorticity=0,maxQ=0;
   const comp=(i,j,k,c)=>vectors[idx(wrap(i,nx),wrap(j,ny),wrap(k,nz),nx,ny)*3+c];
   for(let k=0;k<nz;k++)for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
     const p=idx(i,j,k,nx,ny),u=vectors[p*3],v=vectors[p*3+1],w=vectors[p*3+2];speed[p]=Math.hypot(u,v,w);maxSpeed=Math.max(maxSpeed,speed[p]);
@@ -41,29 +47,58 @@ function computeDiagnostics(data){
   return {speed,vorticity,qcriterion,maxSpeed,maxVorticity,maxQ};
 }
 function colorForValue(value,maxValue){const c=new THREE.Color(),t=maxValue>0?Math.min(Math.max(value/maxValue,0),1):0;c.setHSL((1-t)*.66,.9,.58);return c;}
-function disposeField(){if(!fieldObject)return;scene.remove(fieldObject);fieldObject.geometry.dispose();fieldObject.material.dispose();fieldObject=null;}
+function disposeObject(obj){if(!obj)return;obj.traverse?.(child=>{child.geometry?.dispose?.();if(Array.isArray(child.material))child.material.forEach(m=>m.dispose?.());else child.material?.dispose?.();});}
+function disposeField(){if(!fieldObject)return;scene.remove(fieldObject);disposeObject(fieldObject);fieldObject=null;}
 function frameGeometry(geom){geom.computeBoundingBox();const box=geom.boundingBox;if(!box||box.isEmpty())return;const center=new THREE.Vector3(),size=new THREE.Vector3();box.getCenter(center);box.getSize(size);const radius=Math.max(size.x,size.y,size.z,1);controls.target.copy(center);camera.near=Math.max(radius/1000,.001);camera.far=radius*50;camera.updateProjectionMatrix();camera.position.copy(center).add(new THREE.Vector3(radius*1.3,radius*1.3,radius*1.3));controls.update();}
 function percentileThreshold(values,keepPercent,positiveOnly=false){const samples=[];for(let i=0;i<values.length;i++)if(!positiveOnly||values[i]>0)samples.push(values[i]);if(!samples.length)return Infinity;samples.sort((a,b)=>a-b);return samples[Math.floor(Math.max(0,Math.min(1,1-keepPercent/100))*(samples.length-1))];}
 
+const TETS=[[0,5,1,6],[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6]];
+const TET_EDGES=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+function interpolateIso(a,b,va,vb,iso){const d=vb-va,t=Math.abs(d)<1e-12?.5:Math.max(0,Math.min(1,(iso-va)/d));return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function buildIsoGeometry(values,iso,data,step){
+  const {dims:[nx,ny,nz],origin:[ox,oy,oz],spacing:[dx,dy,dz]}=data,positions=[];
+  const point=(i,j,k)=>[ox+i*dx,oy+j*dy,oz+k*dz];
+  const value=(i,j,k)=>values[idx(i,j,k,nx,ny)];
+  for(let k=0;k<nz-1;k+=step)for(let j=0;j<ny-1;j+=step)for(let i=0;i<nx-1;i+=step){
+    const i1=Math.min(i+step,nx-1),j1=Math.min(j+step,ny-1),k1=Math.min(k+step,nz-1);
+    const coords=[point(i,j,k),point(i1,j,k),point(i1,j1,k),point(i,j1,k),point(i,j,k1),point(i1,j,k1),point(i1,j1,k1),point(i,j1,k1)];
+    const vals=[value(i,j,k),value(i1,j,k),value(i1,j1,k),value(i,j1,k),value(i,j,k1),value(i1,j,k1),value(i1,j1,k1),value(i,j1,k1)];
+    for(const tet of TETS){const cross=[];for(const [ea,eb] of TET_EDGES){const a=tet[ea],b=tet[eb],va=vals[a],vb=vals[b];if((va<iso&&vb>=iso)||(vb<iso&&va>=iso))cross.push(interpolateIso(coords[a],coords[b],va,vb,iso));}
+      if(cross.length===3){positions.push(...cross[0],...cross[1],...cross[2]);}
+      else if(cross.length===4){positions.push(...cross[0],...cross[1],...cross[2],...cross[0],...cross[2],...cross[3]);}
+    }
+  }
+  const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));if(positions.length)geom.computeVertexNormals();return geom;
+}
+
 function rebuild(){
-  if(!parsed||!diagnostics)return;disposeField();const stride=Number(strideInput.value),scale=Number(scaleInput.value),keepPercent=Number(thresholdInput.value);strideValue.textContent=String(stride);scaleValue.textContent=scale.toFixed(2);thresholdValue.textContent=String(keepPercent);
+  if(!parsed||!diagnostics)return;disposeField();
+  const stride=Number(strideInput.value),scale=Number(scaleInput.value),keepPercent=Number(thresholdInput.value);strideValue.textContent=String(stride);scaleValue.textContent=scale.toFixed(2);thresholdValue.textContent=String(keepPercent);
   const {dims:[nx,ny,nz],origin,spacing,vectors}=parsed,mode=modeSelect.value;let geom;
   if(mode==='velocity'){
     const pos=[],cols=[];let shown=0;for(let k=0;k<nz;k+=stride)for(let j=0;j<ny;j+=stride)for(let i=0;i<nx;i+=stride){const p0=idx(i,j,k,nx,ny),p=p0*3,x=origin[0]+i*spacing[0],y=origin[1]+j*spacing[1],z=origin[2]+k*spacing[2],u=vectors[p],v=vectors[p+1],w=vectors[p+2],c=colorForValue(diagnostics.speed[p0],diagnostics.maxSpeed);pos.push(x,y,z,x+u*scale,y+v*scale,z+w*scale);cols.push(c.r,c.g,c.b,c.r,c.g,c.b);shown++;}
     geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geom.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));fieldObject=new THREE.LineSegments(geom,new THREE.LineBasicMaterial({vertexColors:true}));status.textContent=`${nx}×${ny}×${nz} / ${shown.toLocaleString()} vectors / max |u|=${diagnostics.maxSpeed.toFixed(4)} / max |ω|=${diagnostics.maxVorticity.toFixed(4)} / max Q=${diagnostics.maxQ.toFixed(4)}`;
   }else{
-    const values=mode==='vorticity'?diagnostics.vorticity:diagnostics.qcriterion,maxValue=mode==='vorticity'?diagnostics.maxVorticity:diagnostics.maxQ,positiveOnly=mode==='qcriterion',threshold=percentileThreshold(values,keepPercent,positiveOnly),pos=[],cols=[];let shown=0;
-    for(let k=0;k<nz;k+=stride)for(let j=0;j<ny;j+=stride)for(let i=0;i<nx;i+=stride){const p=idx(i,j,k,nx,ny),value=values[p];if(value<threshold||(positiveOnly&&value<=0))continue;const x=origin[0]+i*spacing[0],y=origin[1]+j*spacing[1],z=origin[2]+k*spacing[2],c=colorForValue(value,maxValue);pos.push(x,y,z);cols.push(c.r,c.g,c.b);shown++;}
-    geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geom.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));fieldObject=new THREE.Points(geom,new THREE.PointsMaterial({vertexColors:true,size:Math.max(...spacing)*2.2,sizeAttenuation:true}));const label=mode==='vorticity'?'|ω|':'Q';status.textContent=`${nx}×${ny}×${nz} / ${shown.toLocaleString()} points / strongest ${keepPercent}% / threshold ${label}=${Number.isFinite(threshold)?threshold.toFixed(4):'n/a'} / max ${label}=${maxValue.toFixed(4)}`;
+    const isVorticity=mode.startsWith('vorticity'),isIso=mode.endsWith('_iso'),values=isVorticity?diagnostics.vorticity:diagnostics.qcriterion,maxValue=isVorticity?diagnostics.maxVorticity:diagnostics.maxQ,positiveOnly=!isVorticity,threshold=percentileThreshold(values,keepPercent,positiveOnly),label=isVorticity?'|ω|':'Q';
+    if(isIso){
+      status.textContent=`${label} 等値面を生成中…`;
+      geom=buildIsoGeometry(values,threshold,parsed,Math.max(1,stride));
+      const triangles=(geom.getAttribute('position')?.count||0)/3;
+      fieldObject=new THREE.Mesh(geom,new THREE.MeshStandardMaterial({color:isVorticity?0x38bdf8:0xf59e0b,roughness:.42,metalness:.05,transparent:true,opacity:.84,side:THREE.DoubleSide}));
+      status.textContent=`${nx}×${ny}×${nz} / ${Math.round(triangles).toLocaleString()} triangles / iso ${label}=${Number.isFinite(threshold)?threshold.toFixed(4):'n/a'} / max ${label}=${maxValue.toFixed(4)} / step=${stride}`;
+    }else{
+      const pos=[],cols=[];let shown=0;for(let k=0;k<nz;k+=stride)for(let j=0;j<ny;j+=stride)for(let i=0;i<nx;i+=stride){const p=idx(i,j,k,nx,ny),value=values[p];if(value<threshold||(positiveOnly&&value<=0))continue;const x=origin[0]+i*spacing[0],y=origin[1]+j*spacing[1],z=origin[2]+k*spacing[2],c=colorForValue(value,maxValue);pos.push(x,y,z);cols.push(c.r,c.g,c.b);shown++;}
+      geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geom.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));fieldObject=new THREE.Points(geom,new THREE.PointsMaterial({vertexColors:true,size:Math.max(...spacing)*2.2,sizeAttenuation:true}));status.textContent=`${nx}×${ny}×${nz} / ${shown.toLocaleString()} points / strongest ${keepPercent}% / threshold ${label}=${Number.isFinite(threshold)?threshold.toFixed(4):'n/a'} / max ${label}=${maxValue.toFixed(4)}`;
+    }
   }
-  scene.add(fieldObject);if(needsFrame){frameGeometry(geom);needsFrame=false;}
+  scene.add(fieldObject);if(needsFrame&&geom){frameGeometry(geom);needsFrame=false;}
 }
 
 async function fetchVtk(url){if(frameCache.has(url))return frameCache.get(url);const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=parseLegacyStructuredPoints(await res.text());if(frameCache.size>=3)frameCache.delete(frameCache.keys().next().value);frameCache.set(url,data);return data;}
 async function loadVtk(url,frameCamera=false){const mine=++requestId;status.textContent='VTK を読み込み中…';const data=await fetchVtk(url);if(mine!==requestId)return;parsed=data;status.textContent='速度勾配・渦度・Q-criterion を計算中…';diagnostics=computeDiagnostics(parsed);if(frameCamera)needsFrame=true;rebuild();}
 function stopPlayback(){playing=false;if(playTimer){clearTimeout(playTimer);playTimer=null;}playButton.textContent='▶ 再生';}
 async function loadSeriesFrame(index,frameCamera=false){if(!series)return;const frame=series.frames[index];timeValue.textContent=`t = ${Number(frame.time).toFixed(3)} (${index+1}/${series.frames.length})`;timeInput.value=String(index);try{await loadVtk(seriesBase+frame.file,frameCamera);}catch(e){console.error(e);status.textContent=`読み込み失敗: ${e.message}`;stopPlayback();}}
-function scheduleNext(){if(!playing||!series)return;playTimer=setTimeout(async()=>{let next=(Number(timeInput.value)+1)%series.frames.length;await loadSeriesFrame(next,false);scheduleNext();},650);}
+function scheduleNext(){if(!playing||!series)return;playTimer=setTimeout(async()=>{const next=(Number(timeInput.value)+1)%series.frames.length;await loadSeriesFrame(next,false);scheduleNext();},650);}
 
 async function loadDataset(){stopPlayback();series=null;timeInput.disabled=true;playButton.disabled=true;timeValue.textContent='—';frameCache.clear();needsFrame=true;const value=datasetSelect.value;
   try{
