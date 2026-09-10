@@ -29,42 +29,54 @@
   - 5×5 Jacobian を数値構成
   - momentごとのスケール差を行正規化
   - 線形係数回収と非線形 fixed-point 回収を回帰
+- Appendix A.2 staged outer profile の radial primitives
+  - (A.5) smooth step `sigma`
+  - (A.6) parameter hierarchy を `log P*`, `log h` で安全に表現
+  - (A.7) reference inner power law
+  - axial reduction / (A.9) intermediate power law / reserved patches
+  - (A.10) profile interpolation
+  - (A.12) terminal factor / slope
+  - (A.13) `Qp`
+- Appendix A.3 moment closure mechanism
+  - axial pulse `phi_b`, `R0`
+  - (A.15) の2-bump `M=J=0` closure
+  - (A.11) の2-bump `I` / pressure increment closure
+  - (A.19) の `Kb` と amplitude root solver
+  - (A.16) terminal `Qs` representation
+  - (A.17) の `h^8`, `h^6` exact factors
+  - CIで回帰し、診断CSV/日本語レポートを生成
 
 ### 数式監査・数値表現で検出した修正
 
 - 類似座標の消去形は `q - z^2 q^(2h) = tau` と確認し、初期転記を修正した。
 - Corollary A.3 のテストで power weights が重複する退化 exponent を避けるよう修正した。
 - Appendix A.2 の parameter hierarchy `Td=exp(Md)+10`, `P*>exp(Td)`, `h<exp(-Td)` は通常の `double` で `P*`,`h` を直接保持するとオーバーフロー/アンダーフローするため、実装では `log P*`, `log h` を基本表現にした。
+- Appendix A.3 の pulse moments は first bump center で正規化し、`exp(O(1/lambda))` を直接生成しない実装にした。
 
 ### 成果物パイプライン
 
 main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Web Viewer は Android から速度・渦度・Q-criterion・等値面・時間発展を確認できる。
 
-## 現在地: Appendix A.2 staged outer profile
+Appendix A.3 については `results/reference/appendix_a3_closure.csv` と `reports/appendix-a3.md` を自動生成する。
 
-原典 Appendix A.2 のうち、推測なしで直接数値化できる以下を実装した。
+## 現在地: Appendix A.3 統合 → A.4 pressure datum
 
-- 式 (A.5): smooth step `sigma`
-- 式 (A.6): parameter hierarchy と logarithmic parameter representation
-- 式 (A.7): reference inner power law `U=4 eta`, `E=P* f(eta) x^(1/10)`
-- 最初の `l=(3/5)(1-sigma)` transition
-- axial reduction stage `l=0`, `U=k(y) eta`
-- 式 (A.9): intermediate power-law entry / `l=-lambda` hold
-- 4つの reserved correction patches
+Appendix A.3 の有限次元 closure mechanism は実装・回帰済み。ただし、現状の amplitude solver は (A.19) の小さい remainder `Error(Amp,eta)` を callback として受け取る段階で、A.2 の全radial scheduleからそのremainderを直接計算する統合は未完。
 
 次の順序:
 
 1. **Appendix A.1 moment correction primitives — 実装済み**
 2. **式 (4.15) cumulative moments — 実装済み**
 3. **Corollary A.3 five-bump exact quadratic moment map — 実装済み**
-4. **Appendix A.2 staged outer profile 前半 — 実装済み**
-5. Appendix A.2 axial pulse / profile interpolation / exterior transition (A.10)–(A.13)
-6. Appendix A.3 moment closure: `M=J=0`, angular moment, `S(infinity)=0`
-7. pressure datum `Pi0(eta)` と exterior power law
-8. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
-9. Appendix B analytic axis profile と moment matching
-10. Appendix C admissible stress cone realization
-11. Theorem 4.6 profile assembly
+4. **Appendix A.2 radial primitives / (A.10)–(A.13) — 実装済み**
+5. **Appendix A.3 finite-dimensional closure mechanism — 実装済み**
+6. A.2 全stageをglobal log-radial scheduleとして接続し、(A.14)/(A.19) remainderを直接評価
+7. A.3 の `Amp(eta)`, pulse corrections, angular correctionsを実profileへ統合して (A.8) を全区間で確認
+8. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
+9. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
+10. Appendix B analytic axis profile と moment matching
+11. Appendix C admissible stress cone realization
+12. Theorem 4.6 profile assembly
 
 任意の surrogate profile を OpenAI 構成として扱わない。
 
