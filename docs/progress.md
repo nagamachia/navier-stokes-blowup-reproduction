@@ -39,15 +39,23 @@
   - axial pulse `phi_b`, `R0`
   - (A.15) の2-bump `M=J=0` closure
   - (A.11) の2-bump `I` / pressure increment closure
-  - (A.19) の `Kb` と局所 amplitude root solver
+  - (A.19) の `Kb` と amplitude root solver
   - (A.16) terminal `Qs` representation
   - (A.17) の `h^8`, `h^6` exact factors
-  - CIで回帰し、診断CSV/日本語レポートを生成
+  - ordered asymptotic regime `lambda=1e-5` で full schedule の A.19 bracket/root を回収
+  - `Amp(eta)` を eta sweep で解き、global closure を CI 回帰
 - Appendix A.2 → A.3 の基準schedule積分
   - temporary reference power law → first transition → axial reduction → (A.9) hold を正規化ODEで接続
   - `m=M/(XE)`, `j=J/(XHE)`, `s=S/(XE^2)`, `rI=I/(XH)` を直接発展させる実装
   - raw `X,M,J,S` を生成せず巨大な対数半径を扱える
   - scheduleから得た `M,J` discrepancy を (A.15) two-bump closure に接続
+- Appendix A.4 / Lemma A.5 pressure datum
+  - (A.21) `Pi0(eta) = -1/2 integral E(y,eta)^2 dy` を A.2/A.3 の全 radial schedule から評価
+  - `Pi0/P*^2` を基本量とする log-space 積分で巨大な `P*` を安全に扱う
+  - (A.10) 中の `Pi0_eta`, `Pi0_etaeta` を integrand の解析微分から同時積分
+  - (A.22) の偶対称性、`eta Pi0'(eta)>0`、inner-branch bound を回帰
+  - (A.23) の `y<=0` inner pressure を厳密形で実装
+  - A.11 の pressure-preserving angular bumps は datum 積分では省略するが、A.11 区間そのものは保持
 
 ### 数式監査・数値表現で検出した修正
 
@@ -58,16 +66,20 @@
 - A.11 の relative-E correction は局所 moment jump と global slope evolution を二重計上しないよう分離した。
 - **重要な訂正:** (A.9) 後に列挙される4区間は A.3 closure のために使う補正ではない。Proposition A.4 はこれらを unaltered のまま残して (A.8) を成立させ、その後の cone realization / heat compensation / higher-order background / phase-averaged mean corrections が使用する。
 - `lambda=0.05` を用いた初期 global test では `S/(XE^2)` が巨大化して A.19 bracket が消えた。これは reserved patch 不足ではなく、`Tw=60 log(1/lambda)` を含む ordered asymptotic construction に対して lambda が十分小さくなかったため。A.14 で使う `exp(-2 lambda Tw)=exp(-120 lambda log(1/lambda))` は lambda -> 0 で 1 に近づくが、lambda=0.05 では約 1.6e-8 まで落ちる。
+- (A.22) の `-(5/2)P*^2 f(eta)^2` は full pressure datum の等式ではなく、`y<=0` reference inner branch から来る上界として扱う。
 
 ### 成果物パイプライン
 
-main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Appendix A.3 は `results/reference/appendix_a3_closure.csv` と `reports/appendix-a3.md` を自動生成する。
+main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。
 
-## 現在地: Appendix A.3 global closure の漸近パラメータ検証
+- Appendix A.3: `results/reference/appendix_a3_closure.csv`, `results/reference/appendix_a3_global.csv`, `reports/appendix-a3.md`
+- Appendix A.4: `results/reference/appendix_a4_pressure.csv`, `reports/appendix-a4-pressure.md`
 
-有限次元の A.3 closure mechanism と A.2 基準scheduleの正規化積分は実装済み。次に、原典の parameter choice order `(Md,Td,P*) -> lambda sufficiently small -> h sufficiently small` を数値テストにも反映し、full schedule から直接 (A.19) の root を回収できるか検証する。
+## 現在地: Lemma A.6 / Proposition A.7 heat exterior replacement
 
-A.9 の4つの reserved interval はこの段階では変更しない。原典どおり、A.3 / Proposition A.4 の成立後に後工程用の untouched patches として保持する。
+Appendix A.3 の global closure と Appendix A.4 の pressure datum まで、式番号付き実装・回帰テスト・CI成果物生成を接続した。次の本筋は、pressure datum を変えずに exterior を exact heat profile へ置換し、失われる3つの moments を reserved heat patch で補償する Lemma A.6 / Proposition A.7 の数値化である。
+
+A.9 の4つの reserved interval は原典どおり後工程用として保持する。次段階では heat compensation に対応する予約区間だけを初めて使用し、他の予約区間は変更しない。
 
 次の順序:
 
@@ -78,9 +90,9 @@ A.9 の4つの reserved interval はこの段階では変更しない。原典�
 5. **Appendix A.3 finite-dimensional closure mechanism — 実装済み**
 6. **A.2 基準scheduleの正規化ODE — 実装済み**
 7. **A.9 reserved correction intervals — 位置のみ実装済み、A.3では意図的に未変更**
-8. ordered asymptotic regime で corrected A.14 / global A.19 bracket を数値確認
-9. A.3 の `Amp(eta)` を global schedule から解き、(A.8) を全区間で確認
-10. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
+8. **ordered asymptotic regime で corrected A.14 / global A.19 bracket — 数値確認済み**
+9. **A.3 `Amp(eta)` global root / eta sweep — 実装・CI回帰済み**
+10. **Appendix A.4 `Pi0(eta)` / (A.21)–(A.23) — 実装・CI回帰済み**
 11. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
 12. Appendix B analytic axis profile と moment matching
 13. Appendix C admissible stress cone realization
