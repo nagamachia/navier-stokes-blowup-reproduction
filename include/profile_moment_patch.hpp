@@ -100,9 +100,6 @@ public:
 
     Vector quadratic_remainder(const Vector& x, const Vector& y) const {
         if (x.size() != 5 || y.size() != 5) throw std::invalid_argument("five coefficients required");
-        // Polarization of the exact degree-two remainder. This keeps the implementation
-        // independent of a hand-expanded quadratic formula while remaining exact up to
-        // quadrature error.
         Vector xy(5), xpy(5);
         for (std::size_t i = 0; i < 5; ++i) xpy[i] = x[i] + y[i];
         const Matrix B = jacobian_at_zero();
@@ -118,9 +115,27 @@ public:
     }
 
     Vector solve_for_change(const Vector& discrepancy, std::size_t max_iterations = 100) const {
+        if (discrepancy.size() != 5) throw std::invalid_argument("five moment discrepancies required");
         const Matrix B = jacobian_at_zero();
-        BilinearMap Q = [&](const Vector& x, const Vector& y) { return quadratic_remainder(x, y); };
-        return solve_small_quadratic_moment_system(B, discrepancy, Q, max_iterations, 1e-11);
+
+        // The five rows have different physical scales. Row-normalizing avoids
+        // mistaking a small but perfectly invertible Jacobian for a singular one.
+        Vector row_scale(5, 0.0);
+        Matrix scaled_B = B;
+        Vector scaled_d = discrepancy;
+        for (std::size_t i = 0; i < 5; ++i) {
+            for (double value : B[i]) row_scale[i] = std::max(row_scale[i], std::abs(value));
+            if (!(row_scale[i] > 0.0)) throw std::runtime_error("zero row in five-moment Jacobian");
+            for (double& value : scaled_B[i]) value /= row_scale[i];
+            scaled_d[i] /= row_scale[i];
+        }
+
+        BilinearMap scaled_Q = [&](const Vector& x, const Vector& y) {
+            Vector q = quadratic_remainder(x, y);
+            for (std::size_t i = 0; i < q.size(); ++i) q[i] /= row_scale[i];
+            return q;
+        };
+        return solve_small_quadratic_moment_system(scaled_B, scaled_d, scaled_Q, max_iterations, 1e-11);
     }
 
 private:
