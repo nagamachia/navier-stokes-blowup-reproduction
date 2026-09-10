@@ -44,10 +44,10 @@
   - (A.17) の `h^8`, `h^6` exact factors
   - CIで回帰し、診断CSV/日本語レポートを生成
 - Appendix A.2 → A.3 の基準schedule積分
-  - temporary reference power law → first transition → axial reduction → 未補正の (A.9) hold を正規化ODEで接続
+  - temporary reference power law → first transition → axial reduction → (A.9) hold を正規化ODEで接続
   - `m=M/(XE)`, `j=J/(XHE)`, `s=S/(XE^2)`, `rI=I/(XH)` を直接発展させる実装
   - raw `X,M,J,S` を生成せず巨大な対数半径を扱える
-  - 未補正scheduleから得た `M,J` discrepancy を (A.15) two-bump closure に接続
+  - scheduleから得た `M,J` discrepancy を (A.15) two-bump closure に接続
 
 ### 数式監査・数値表現で検出した修正
 
@@ -56,17 +56,18 @@
 - Appendix A.2 の巨大パラメータは `log P*`, `log h` を基本表現にした。
 - Appendix A.3 の pulse moments は first bump center で正規化し、`exp(O(1/lambda))` を直接生成しない。
 - A.11 の relative-E correction は局所 moment jump と global slope evolution を二重計上しないよう分離した。
-- **重要:** 未補正の (A.9) hold をそのまま積分すると `S/(XE^2)` が大きな負値へ増幅し、`S(infinity)=0` の amplitude root は `[0.9,1.2]` に現れない。これは論文が (A.9) 内に予約した correction patches をまだ適用していないためであり、A.14 の完成状態として扱ってはいけない。
+- **重要な訂正:** (A.9) 後に列挙される4区間は A.3 closure のために使う補正ではない。Proposition A.4 はこれらを unaltered のまま残して (A.8) を成立させ、その後の cone realization / heat compensation / higher-order background / phase-averaged mean corrections が使用する。
+- `lambda=0.05` を用いた初期 global test では `S/(XE^2)` が巨大化して A.19 bracket が消えた。これは reserved patch 不足ではなく、`Tw=60 log(1/lambda)` を含む ordered asymptotic construction に対して lambda が十分小さくなかったため。A.14 で使う `exp(-2 lambda Tw)=exp(-120 lambda log(1/lambda))` は lambda -> 0 で 1 に近づくが、lambda=0.05 では約 1.6e-8 まで落ちる。
 
 ### 成果物パイプライン
 
 main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Appendix A.3 は `results/reference/appendix_a3_closure.csv` と `reports/appendix-a3.md` を自動生成する。
 
-## 現在地: Appendix A.9 reserved corrections → A.3 global closure
+## 現在地: Appendix A.3 global closure の漸近パラメータ検証
 
-有限次元の A.3 closure mechanism は実装済み。global schedule については基準stageの正規化積分まで実装したが、A.9 の4つの reserved correction patches をまだ profile に反映していない。
+有限次元の A.3 closure mechanism と A.2 基準scheduleの正規化積分は実装済み。次に、原典の parameter choice order `(Md,Td,P*) -> lambda sufficiently small -> h sufficiently small` を数値テストにも反映し、full schedule から直接 (A.19) の root を回収できるか検証する。
 
-CIでこの欠落を実際に検出した。未補正scheduleでは `S(infinity)` が amplitude 0.9 と1.2の両方で約 `-9.83e8` となり root が消えるため、full A.3 closure の成功条件から一旦外し、この値を「予約patch未適用の診断」として扱う。
+A.9 の4つの reserved interval はこの段階では変更しない。原典どおり、A.3 / Proposition A.4 の成立後に後工程用の untouched patches として保持する。
 
 次の順序:
 
@@ -76,15 +77,16 @@ CIでこの欠落を実際に検出した。未補正scheduleでは `S(infinity)
 4. **Appendix A.2 radial primitives / (A.10)–(A.13) — 実装済み**
 5. **Appendix A.3 finite-dimensional closure mechanism — 実装済み**
 6. **A.2 基準scheduleの正規化ODE — 実装済み**
-7. **A.9 reserved correction intervals — 位置のみ実装済み**
-8. A.9 の reserved profile/heat/positivity/mean corrections を原典どおり適用し、corrected A.14 state を構成
-9. corrected A.14 → pulse → A.10 → A.11 → exterior transition → terminal tail を接続
-10. global `S(infinity)` の `[0.9,1.2]` root と `Amp(eta)` を直接確認し、(A.8) を全区間で監査
-11. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
-12. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
-13. Appendix B analytic axis profile と moment matching
-14. Appendix C admissible stress cone realization
-15. Theorem 4.6 profile assembly
+7. **A.9 reserved correction intervals — 位置のみ実装済み、A.3では意図的に未変更**
+8. ordered asymptotic regime で corrected A.14 / global A.19 bracket を数値確認
+9. A.3 の `Amp(eta)` を global schedule から解き、(A.8) を全区間で確認
+10. Appendix A.4 pressure datum `Pi0(eta)` / (A.21)–(A.23)
+11. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
+12. Appendix B analytic axis profile と moment matching
+13. Appendix C admissible stress cone realization
+14. Appendix C.2 後に first reserved patch で five moments を復元
+15. higher-order / mean corrections で third/fourth reserved patches を使用
+16. Theorem 4.6 profile assembly
 
 任意の surrogate profile を論文構成そのものとして扱わない。
 
