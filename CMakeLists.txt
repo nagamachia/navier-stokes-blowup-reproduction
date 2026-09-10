@@ -92,6 +92,10 @@ add_executable(test_appendix_a3_global tests/appendix_a3_global.cpp)
 target_include_directories(test_appendix_a3_global PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a3_global)
 
+add_executable(test_appendix_a4_pressure tests/appendix_a4_pressure.cpp)
+target_include_directories(test_appendix_a4_pressure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_appendix_a4_pressure)
+
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
 
@@ -115,6 +119,7 @@ add_test(NAME profile_moment_patch_regression COMMAND test_profile_moment_patch)
 add_test(NAME outer_profile_stages_regression COMMAND test_outer_profile_stages)
 add_test(NAME appendix_a3_closure_regression COMMAND test_appendix_a3_closure)
 add_test(NAME appendix_a3_global_regression COMMAND test_appendix_a3_global)
+add_test(NAME appendix_a4_pressure_regression COMMAND test_appendix_a4_pressure)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
