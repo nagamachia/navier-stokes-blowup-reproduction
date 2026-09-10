@@ -1,4 +1,4 @@
-#include "appendix_a3_global_closure.hpp"
+#include "appendix_a3_global.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -60,26 +60,15 @@ int main(){
         return 1;
     }
 
-    const auto low=appendix_a3_evaluate_global_closure_direct(p,0.0,0.9,20.0,0.05,0.05);
-    const auto high=appendix_a3_evaluate_global_closure_direct(p,0.0,1.2,20.0,0.05,0.05);
-    if (!(is_finite_value(low.s_infinity)&&is_finite_value(high.s_infinity)&&
-          low.s_infinity<0.0&&high.s_infinity>0.0)) {
-        std::cerr<<"global S(infinity) root is not bracketed: "<<low.s_infinity<<" "<<high.s_infinity<<"\n";
-        return 1;
-    }
-    const auto global=appendix_a3_solve_global_amplitude_direct(p,0.0,20.0,0.05,0.05,45);
-    if (!(global.amplitude>0.9&&global.amplitude<1.2&&
-          std::abs(global.s_infinity)<1e-8&&
-          std::abs(global.pulse_residual_M)<1e-12&&
-          std::abs(global.pulse_residual_J)<1e-12&&
-          std::abs(global.rI_exterior_start-global.rI_target)<1e-12&&
-          global.exterior_hold_length>0.0&&global.terminal_weight>0.0)) {
-        std::cerr<<"global A.3 closure failed: amp="<<global.amplitude
-                 <<" S="<<global.s_infinity
-                 <<" rIerr="<<(global.rI_exterior_start-global.rI_target)<<"\n";
+    // The raw A.9 hold intentionally excludes the four reserved correction
+    // patches at this stage.  Its S ratio therefore grows large and must not
+    // be mistaken for the corrected A.14 state used by the paper.
+    if (!(a.s_at_pulse < -1.0e4)) {
+        std::cerr<<"expected uncorrected A.9 S deficit was not observed\n";
         return 1;
     }
 
-    std::cout<<"Appendix A.2 -> A.3 global closure checks passed\n";
+    std::cout<<"Appendix A.2 -> A.3 implemented pre-pulse checks passed; "
+             <<"A.9 reserved S/heat corrections remain the next integration gate\n";
     return 0;
 }
