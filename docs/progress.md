@@ -18,69 +18,53 @@
 ### 論文構成
 
 - 式 (3.2)/(4.1): 類似座標 `q, eta, X`
-  - `q - z^2 q^(2h) = tau` の数値解法を実装
-  - 既知の `(q,eta)` から `(tau,z)` を作り逆変換する回帰テストを実装
 - Lemma 4.1, 式 (4.2): `T_b`, `Z_b`
-  - 作用素を実装
-  - manufactured profile を使い、物理座標の中心有限差分 `partial_t`, `partial_z` と比較
 - 式 (4.6)–(4.7): `A_X`, `V0`, `Pi`
-  - composite Simpson 積分による radial average
-  - `U`, `partial_eta U` から非圧縮条件の `V0` を再構成
-  - 軸正則形 `E=sqrt(2X)F` を使った pressure integral
-  - polynomial / exponential manufactured profile で回帰
 - 式 (4.8)–(4.11): leading stress
-  - `docs/leading-stress.md` にPDFから式を抽出
-  - `H,F,l,W,H_c,S_q,S_n,Q_s,N_s,p_s,a,b_s,T_0` を汎用 profile callback で実装
-  - `Q_s/N_s` のODE恒等式、軸上極限、`T_0` の軸正則性を manufactured profile で回帰
 - 式 (4.4)–(4.5): Cartesian 軸正則性
-  - `E=sqrt(2X)F`, `V0=Xv0` を使った Cartesian leading field を実装
-  - `r -> 0` で transverse velocity が `O(r)`、円柱成分を再構成できることを回帰
 - 式 (4.15): five cumulative radial moments `M,I,J,S,Cp`
-  - regular-axis 変数 `E=sqrt(2X)F` で正則に積分する実装を追加
-  - polynomial manufactured profile で5成分を解析値と照合
-- Appendix A.1, Lemma A.1: finitely many moment adjustments
-  - separated radial bumps と異なる power weights から moment matrix `B_ij` を構成
-  - partial-pivot Gaussian elimination と determinant 診断を実装
-  - 非零 determinant と係数回収を回帰
+- Appendix A.1, Lemma A.1: finite moment matrix / invertibility
 - Appendix A.1, Lemma A.2: quadratic moment correction
-  - `F_eta(c)=B(eta)c+Q_eta(c,c)` の zero-start fixed-point branch を実装
-  - small quadratic manufactured system と `Q=0` の線形極限を回帰
+- Corollary A.3: 2つの `U` bumps + 3つの `E` bumps による five-moment exact quadratic map
+  - 5×5 Jacobian を数値構成
+  - momentごとのスケール差を行正規化
+  - 線形係数回収と非線形 fixed-point 回収を回帰
 
-### 数式監査で検出した修正
+### 数式監査・数値表現で検出した修正
 
-初期転記では消去形を `q - z^2/q^(2h) = tau` としていたが、式 (4.1) の
-
-`z = q^(1/2-h) eta`
-
-`tau = q(1-eta^2)`
-
-からの代数消去、および論文 Section 4.1 の本文を再確認し、正しくは
-
-`q - z^2 q^(2h) = tau`
-
-であることを確認した。`T_b`, `Z_b` の有限差分照合がこの不整合を検出したため、座標ソルバと文書を修正した。
+- 類似座標の消去形は `q - z^2 q^(2h) = tau` と確認し、初期転記を修正した。
+- Corollary A.3 のテストで power weights が重複する退化 exponent を避けるよう修正した。
+- Appendix A.2 の parameter hierarchy `Td=exp(Md)+10`, `P*>exp(Td)`, `h<exp(-Td)` は通常の `double` で `P*`,`h` を直接保持するとオーバーフロー/アンダーフローするため、実装では `log P*`, `log h` を基本表現にした。
 
 ### 成果物パイプライン
 
 main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時系列VTK、可視化、レポートを GitHub に残す。Web Viewer は Android から速度・渦度・Q-criterion・等値面・時間発展を確認できる。
 
-## 現在地: Appendix A の constructive profile
+## 現在地: Appendix A.2 staged outer profile
 
-Theorem 4.6 と Appendices A/B/C の constructive profile `E,U,Pi` の数値化に着手した。
+原典 Appendix A.2 のうち、推測なしで直接数値化できる以下を実装した。
 
-現在、Appendix A.1 と Section 4.2 の共通 matching 基盤まで実装済み。次は Corollary A.3 を直接数値化し、2つの `U` bumps と3つの `E` bumps から5 momentsを同時に修正できることを確認する。
+- 式 (A.5): smooth step `sigma`
+- 式 (A.6): parameter hierarchy と logarithmic parameter representation
+- 式 (A.7): reference inner power law `U=4 eta`, `E=P* f(eta) x^(1/10)`
+- 最初の `l=(3/5)(1-sigma)` transition
+- axial reduction stage `l=0`, `U=k(y) eta`
+- 式 (A.9): intermediate power-law entry / `l=-lambda` hold
+- 4つの reserved correction patches
 
-順序:
+次の順序:
 
 1. **Appendix A.1 moment correction primitives — 実装済み**
 2. **式 (4.15) cumulative moments — 実装済み**
-3. Corollary A.3 の 5-bump exact quadratic moment map — 次の対象
-4. Appendix A.2 の staged outer profile (`U0,E0`) と parameter schedule
-5. pressure datum `Pi0(eta)` と exterior power law
-6. Appendix A.3–A.8 の moment closure / exact heat exterior replacement
-7. Appendix B の analytic axis profile と moment matching
-8. Appendix C の admissible stress cone realization
-9. Theorem 4.6 profile assembly
+3. **Corollary A.3 five-bump exact quadratic moment map — 実装済み**
+4. **Appendix A.2 staged outer profile 前半 — 実装済み**
+5. Appendix A.2 axial pulse / profile interpolation / exterior transition (A.10)–(A.13)
+6. Appendix A.3 moment closure: `M=J=0`, angular moment, `S(infinity)=0`
+7. pressure datum `Pi0(eta)` と exterior power law
+8. Lemma A.6 / Proposition A.7: exact heat exterior replacement と3-moment compensation
+9. Appendix B analytic axis profile と moment matching
+10. Appendix C admissible stress cone realization
+11. Theorem 4.6 profile assembly
 
 任意の surrogate profile を OpenAI 構成として扱わない。
 
