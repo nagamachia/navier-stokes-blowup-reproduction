@@ -29,27 +29,31 @@ int main() {
             std::cerr << "A.7 nonlinear Lemma A.2 branch is not contractive\n";
             return 4;
         }
-        if (!(a.compensation.log_contraction_factor_bound < -700.0)) {
-            std::cerr << "A.7 contraction factor is not exponentially small\n";
+        if (!a.exact_heat_nonlinear_recovery_certified) {
+            std::cerr << "A.7 exact heat target does not preserve contraction\n";
             return 5;
+        }
+        if (!(a.exact_target_log_contraction_factor_bound < -700.0)) {
+            std::cerr << "A.7 exact-target contraction factor is not exponentially small\n";
+            return 6;
         }
         if (!a.pressure_tracks_Cp) {
             std::cerr << "A.7 Cp/pressure coupling lost\n";
-            return 6;
+            return 7;
         }
         if (a.direct_double_exact_recovery_available) {
             std::cerr << "ordered A.7 regime must not be mislabeled as direct double exact recovery\n";
-            return 7;
+            return 8;
         }
         if (!(a.compensation.target_log_spread > 1e5)) {
             std::cerr << "A.7 ordered scale hierarchy unexpectedly collapsed\n";
-            return 8;
+            return 9;
         }
         if (!(a.leading.patch_target_Cp.sign == 1 &&
               a.leading.patch_target_S.sign == -1 &&
               a.leading.patch_target_I.sign == 1)) {
             std::cerr << "A.7 compensation signs changed\n";
-            return 9;
+            return 10;
         }
     }
 
