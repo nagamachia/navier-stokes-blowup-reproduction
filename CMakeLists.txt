@@ -144,6 +144,10 @@ add_executable(test_appendix_b_contraction tests/appendix_b_contraction.cpp)
 target_include_directories(test_appendix_b_contraction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_b_contraction)
 
+add_executable(test_appendix_b_nonlinear_remainder tests/appendix_b_nonlinear_remainder.cpp)
+target_include_directories(test_appendix_b_nonlinear_remainder PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_appendix_b_nonlinear_remainder)
+
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
 
@@ -178,6 +182,7 @@ add_test(NAME appendix_a7_full_recovery_regression COMMAND test_appendix_a7_full
 add_test(NAME appendix_b_axis_regression COMMAND test_appendix_b_axis)
 add_test(NAME appendix_b_coefficient_space_regression COMMAND test_appendix_b_coefficient_space)
 add_test(NAME appendix_b_contraction_regression COMMAND test_appendix_b_contraction)
+add_test(NAME appendix_b_nonlinear_remainder_regression COMMAND test_appendix_b_nonlinear_remainder)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
