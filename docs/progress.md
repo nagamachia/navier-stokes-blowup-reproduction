@@ -70,6 +70,15 @@
   - Lemma A.2 zero-start solver で synthetic small discrepancy を machine precision 近くまで回収
   - `U=0` のため `M,J` は構造的に不変
   - `eta -> -eta` 対称性を回帰
+- Proposition A.7 full schedule coupling の数値部品
+  - terminal heat replacement の normalized discrepancy → second patch solver bridge を runtime 回帰
+  - bridge 内の `appendix_a6_terminal_replacement_ratio` 引数順誤りを発見・修正
+  - A.2/A.3 full schedule から second reserved patch / terminal tail の `log X`, `log e` 自然スケールを抽出
+  - ordered regime (`lambda=1e-5`, `log h=-80`) で patch と tail が `log X` で 10^6 オーダー離れることを確認
+  - heat discrepancy と patch target を signed-log 表現で保持
+  - target 3成分の log spread、dominant linear correction、quadratic-to-dominant ratio を監査
+  - `all_components_resolvable_in_double=false` を明示し、倍精度での componentwise exact recovery を誤って主張しない
+  - heat factor Taylor remainder から leading discrepancy の相対誤差 bound を導出し、ordered regime では `log(relative error)<-10^6` を回帰
 
 ### 数式監査・数値表現で検出した修正
 
@@ -82,6 +91,7 @@
 - `lambda=0.05` を用いた初期 global test では `S/(XE^2)` が巨大化して A.19 bracket が消えた。これは reserved patch 不足ではなく、`Tw=60 log(1/lambda)` を含む ordered asymptotic construction に対して lambda が十分小さくなかったため。A.14 で使う `exp(-2 lambda Tw)=exp(-120 lambda log(1/lambda))` は lambda -> 0 で 1 に近づくが、lambda=0.05 では約 1.6e-8 まで落ちる。
 - (A.22) の `-(5/2)P*^2 f(eta)^2` は full pressure datum の等式ではなく、`y<=0` reference inner branch から来る上界として扱う。
 - (A.32) の `v^h` endpoint は naive uniform-v Simpson では小さい `h` の収束が遅いため、`v=u^8` で平滑化してから積分する。
+- A.7 full schedule の ordered regime では `Cp,S,I` patch target のスケール差が 10^6 オーダーに達する。最大 target を O(1) に正規化すると最小 target は double で消え、dominant correction の quadratic term が最小 target より大きくなり得る。したがって ordered regime の full exact compensation は単純な倍精度3×3 solve では検証できず、階層的 nonlinear correction / contraction argument の接続が必要。
 
 ### 成果物パイプライン
 
@@ -91,15 +101,15 @@ main 更新時に軽量基準計算を実行し、Taylor–Green検証、3D時�
 - Appendix A.4: `results/reference/appendix_a4_pressure.csv`, `reports/appendix-a4-pressure.md`
 - Appendix A.6/A.7: `results/reference/appendix_a6_a7_heat.csv`, `docs/appendix-a6-a7-heat.md`
 
-A.6/A.7 CSV は `eta` sweep に対して heat ratio、(A.37) ODE residual、normalized 3x3 Jacobian determinant、moment recovery error を保存する。
+A.6/A.7 CSV は `eta` sweep に対して heat ratio、(A.37) ODE residual、normalized 3x3 Jacobian determinant、moderate-regime moment recovery error に加え、ordered regime の target signed-log、target log spread、quadratic scale、leading-asymptotic relative-error bound、double で全成分を解像可能かを保存する。
 
 ## 現在地: Proposition A.7 full schedule coupling
 
-Lemma A.6 の exact heat factor / terminal replacement と、Proposition A.7 の second reserved patch 上の3-moment finite-dimensional compensation mechanism までは実装・CI回帰済み。
+Lemma A.6 の exact heat factor / terminal replacement、second reserved patch 上の3-moment finite-dimensional compensation mechanism、full schedule scale extraction、ordered-regime signed-log discrepancy と leading-asymptotic error bound まで実装・回帰済み。
 
-最新の軽量診断では、`eta=-0.9..0.9` で (A.37) residual は machine precision 程度、normalized 3x3 Jacobian determinant は約 `-0.29416` で安定し、synthetic discrepancy の recovery error は `1e-17` オーダーまで戻っている。
+moderate normalized regime では replacement discrepancy → second patch compensation の end-to-end recovery を通常の倍精度で回帰できる。一方、論文の ordered regime では3 target のスケール差が極端で、full componentwise exact solve は倍精度の表現能力を超えることが数値的に確認された。
 
-ただし Proposition A.7 全体はまだ完了扱いにしない。次に必要なのは、A.2/A.3 full schedule の terminal tail を (A.39) で heat profile へ置換したときに生じる **実スケールの** `(Delta Cp,Delta S,Delta I)` を積分し、それを A.9 second reserved patch の solver へ渡す end-to-end 接続である。その後、replacement + compensation 後に global moments と axis pressure datum が元値へ戻ることを回帰する。
+したがって Proposition A.7 全体はまだ完了扱いにしない。次に必要なのは、ordered regime の dominant correction が作る quadratic remainder をさらに小さい補正階層へ送る **hierarchical nonlinear correction / contraction** を、Lemma A.2 の理論と対応する監査量として実装すること。その上で `Cp,S,I` と axis pressure datum restoration のうち、数値で直接確認する部分と解析 bound で保証する部分を1つの end-to-end 結果型にまとめる。
 
 A.9 の残り3つの reserved intervals は引き続き未変更のまま保持する。
 
@@ -117,12 +127,13 @@ A.9 の残り3つの reserved intervals は引き続き未変更のまま保持�
 10. **Appendix A.4 `Pi0(eta)` / (A.21)–(A.23) — 実装・CI回帰済み**
 11. **Lemma A.6 exact heat factor / (A.32)–(A.39) — 実装・CI回帰済み**
 12. **Proposition A.7 3-moment finite-dimensional compensation core — 実装・CI回帰済み**
-13. Proposition A.7 full schedule heat discrepancy → second reserved patch compensation
-14. Appendix B analytic axis profile と moment matching
-15. Appendix C admissible stress cone realization
-16. Appendix C.2 後に first reserved patch で five moments を復元
-17. higher-order / mean corrections で third/fourth reserved patches を使用
-18. Theorem 4.6 profile assembly
+13. **Proposition A.7 full schedule scale / signed-log / asymptotic-error audit — 実装・CI回帰済み**
+14. Proposition A.7 hierarchical nonlinear correction / contraction audit
+15. Appendix B analytic axis profile と moment matching
+16. Appendix C admissible stress cone realization
+17. Appendix C.2 後に first reserved patch で five moments を復元
+18. higher-order / mean corrections で third/fourth reserved patches を使用
+19. Theorem 4.6 profile assembly
 
 任意の surrogate profile を論文構成そのものとして扱わない。
 
