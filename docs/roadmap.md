@@ -97,8 +97,10 @@
     - B.13 の比較解 `Phi0=f0(Y chi)`, `u0=-YZ*/(2L)` と B.19 endpoint の二分岐機構 — **漸近監査・CI回帰済み**
     - `chi<=0.99` 領域は `sigma*` が非常に小さいため uniform eta grid が見落とし得ることを検出し、`H*(eta0)=0` の根を endpoint audit に明示的に含めるよう修正
     - B.5 の coefficient operator `J1,J2`、`T=(1/2)J2(chi·)`、有限次数 `(1+T)^-1` と `Phi0` coefficient series — **実装・CI回帰済み**
-    - weighted coefficient l1 norm と `Jnu` / `T` の operator bound — **実装済み、CI回帰中**
-    - Proposition B.2 の full nonlinear coefficient-space fixed point / contraction と後続 continuation・five-moment matching — **次の対象**
+    - weighted coefficient l1 norm と `Jnu` / `T` の operator bound — **実装・CI回帰済み**
+    - `L^{-1}(g + Lambda^{-1} Q(z,z))` 型の Banach fixed-point contraction audit scaffold — **実装・CI回帰中**
+    - 原典 Proposition B.2 の nonlinear map を式番号どおりに coefficient-space へ落とし、上記 scaffold に実係数を接続 — **次の対象**
+    - 後続 continuation・five-moment matching — **未着手**
 13. Appendix C admissible stress cone realization
 14. Sections 6–7 の oscillatory pulse と平均 stress
 15. residual improvement と final forcing
@@ -129,6 +131,6 @@ main 更新時に GitHub Actions が軽量な基準計算を実行し、結果�
 
 ここでの「A.7 数値再現完了」は、通常倍精度で全ての指数的に小さい係数を直接表示したという意味ではない。moderate regime では直接回帰し、ordered regime では log-space の厳密なスケール管理と有限次元 contraction bound により再現範囲を閉じている。これは Proposition A.7 の数学的証明そのものを新たに与えるものではない。
 
-Appendix B でも、比較解・漸近式の回帰と full nonlinear analytic construction を区別する。B.13/B.19 の比較機構や B.5 の線形 coefficient operator が数値的に確認できても、それだけで Proposition B.2 の nonlinear coefficient-space contraction や後続 moment matching を完了扱いにはしない。
+Appendix B でも、比較解・漸近式の回帰と full nonlinear analytic construction を区別する。B.13/B.19 の比較機構や B.5 の線形 coefficient operator、一般形の contraction scaffold が数値的に確認できても、それだけで Proposition B.2 の nonlinear coefficient-space contraction や後続 moment matching を完了扱いにはしない。原典の nonlinear map の係数を抽出して接続した時点で初めて B.2 の full audit とする。
 
 数値計算は特異時刻直前の挙動やスケーリング則との整合性を示す証拠にはなるが、それだけで有限時間特異性を数学的に証明することはできない。逆に、低解像度で特異的挙動が見えないことも、解析構成が誤りである証拠にはならない。
