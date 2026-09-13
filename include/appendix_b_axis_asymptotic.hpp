@@ -19,7 +19,6 @@ struct AppendixBEndpointAudit {
     bool axial_branch_separated{};
 };
 
-// f0(z)+z f0'(z)=sum (-z/2)^a/(a!)^2.
 inline double appendix_b_f0_plus_z_df0(double z, int terms = 80) {
     if (!(z >= 0.0)) throw std::invalid_argument("Appendix B requires z>=0");
     double sum = 1.0;
@@ -39,11 +38,6 @@ inline double appendix_b_unperturbed_p1(double Y, double chi) {
     return 2.0 - 2.0 * fplus / f;
 }
 
-// Proposition B.3 endpoint alternative in the Lambda->infinity comparison model.
-// On chi>.99, the azimuthal term alone gives p1>2.36 at Y=4.
-// On chi<=.99, B.2 gives |Z*|>delta*. We audit that implication directly.
-// The derived axial normal-stress scale ns=Z*/L is tracked separately and is
-// used only to estimate the finite C required for p2^2/p1>2.3.
 inline AppendixBEndpointAudit appendix_b_endpoint_asymptotic_audit(
     const OuterProfileParameters& p,
     const AppendixBSeparationAudit& sep,
@@ -58,36 +52,44 @@ inline AppendixBEndpointAudit appendix_b_endpoint_asymptotic_audit(
     double max_logC = -std::numeric_limits<double>::infinity();
     bool saw_chi = false, saw_axial = false;
 
-    for (int i = 0; i < eta_samples; ++i) {
-        const double eta = -1.0 + 2.0 * static_cast<double>(i) /
-                                      static_cast<double>(eta_samples - 1);
+    auto audit_eta = [&](double eta) {
         const double H = appendix_b_Hstar(eta, h, j0);
         const double L = appendix_b_L(eta, h);
         const double chi = H * H / (H * H + sep.sigma_star * sep.sigma_star);
         const double phi0 = appendix_b_f0(4.0 * chi);
         min_phi0 = std::min(min_phi0, phi0);
-
         if (chi > 0.99) {
             saw_chi = true;
             min_p1 = std::min(min_p1, appendix_b_unperturbed_p1(4.0, chi));
-        } else {
-            const auto a = appendix_b_axis_data(p, eta, j0, 20.0, 0.05, 0.04);
-            const double abs_Z = std::abs(a.normalized_Zstar);
-            if (!(abs_Z > sep.normalized_delta_star))
-                throw std::runtime_error("B.2 separation inconsistent with endpoint branch");
-            saw_axial = true;
-            min_abs_Z = std::min(min_abs_Z, abs_Z);
-            const double ns_norm = abs_Z / L;
-            min_abs_ns = std::min(min_abs_ns, ns_norm);
-            const double p1 = std::max(appendix_b_unperturbed_p1(4.0, chi), 1e-12);
-            const double log_phi = appendix_b_log_phi_star(
-                p, eta, Lambda, sep.sigma_star, j0, 400);
-            const double log_required = 0.5 * std::log(2.3 * p1)
-                - 0.5 * std::log(2.0 / Lambda)
-                - std::log(ns_norm) + log_phi + std::log(phi0);
-            max_logC = std::max(max_logC, log_required);
+            return;
         }
+
+        const auto a = appendix_b_axis_data(p, eta, j0, 20.0, 0.05, 0.04);
+        const double abs_Z = std::abs(a.normalized_Zstar);
+        if (!(abs_Z > sep.normalized_delta_star))
+            throw std::runtime_error("B.2 separation inconsistent with endpoint branch");
+        saw_axial = true;
+        min_abs_Z = std::min(min_abs_Z, abs_Z);
+        const double ns_norm = abs_Z / L;
+        min_abs_ns = std::min(min_abs_ns, ns_norm);
+        const double p1 = std::max(appendix_b_unperturbed_p1(4.0, chi), 1e-12);
+        const double log_phi = appendix_b_log_phi_star(
+            p, eta, Lambda, sep.sigma_star, j0, 400);
+        const double log_required = 0.5 * std::log(2.3 * p1)
+            - 0.5 * std::log(2.0 / Lambda)
+            - std::log(ns_norm) + log_phi + std::log(phi0);
+        max_logC = std::max(max_logC, log_required);
+    };
+
+    for (int i = 0; i < eta_samples; ++i) {
+        const double eta = -1.0 + 2.0 * static_cast<double>(i) /
+                                      static_cast<double>(eta_samples - 1);
+        audit_eta(eta);
     }
+    // The chi<=.99 set can be much narrower than a uniform eta grid because
+    // sigma_* is deliberately tiny. Include the unique zero H*(eta0)=0 exactly;
+    // here chi=0, so this point belongs to the axial alternative by construction.
+    audit_eta(sep.eta0);
 
     AppendixBEndpointAudit out;
     out.min_phi0 = min_phi0;
