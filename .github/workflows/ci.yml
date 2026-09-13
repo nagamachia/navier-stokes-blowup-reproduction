@@ -45,6 +45,7 @@ jobs:
           ./build/appendix_a3_diagnostics results/reference/appendix_a3_closure.csv
           ./build/appendix_a3_global_diagnostics results/reference/appendix_a3_global.csv
           ./build/appendix_a4_pressure_diagnostics results/reference/appendix_a4_pressure.csv
+          ./build/appendix_a6_a7_diagnostics results/reference/appendix_a6_a7_heat.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
