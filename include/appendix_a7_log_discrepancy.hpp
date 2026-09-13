@@ -21,6 +21,11 @@ struct AppendixA7LeadingHeatLogDiscrepancy {
     AppendixA7SignedLogMoment patch_target_I{};
 };
 
+struct AppendixA7LeadingHeatErrorAudit {
+    double log_relative_bound_CpS{};
+    double log_relative_bound_I{};
+};
+
 namespace detail {
 
 inline double cutoff_exp_integral_log(double alpha, std::size_t panels = 1024) {
@@ -71,6 +76,32 @@ appendix_a7_leading_heat_log_discrepancy(
     out.patch_target_Cp = {+1, out.Cp.log_abs + scales.log_target_scale_Cp};
     out.patch_target_S  = {-1, out.S.log_abs  + scales.log_target_scale_S};
     out.patch_target_I  = {+1, out.I.log_abs  + scales.log_target_scale_I};
+    return out;
+}
+
+// Certified leading-expansion audit.  From Taylor's theorem for the positive
+// heat-factor integral,
+//   0 <= H(Z)-[1-h(1+h)Z]
+//      <= 1/2 h(1+h)^2(2+h) Z^2.
+// Thus the relative error in the linear E discrepancy is bounded by
+// (1+h)(2+h)d/X.  For Cp and S, the extra (delta E)^2 term adds at most
+// h(1+h)d/X, giving the convenient uniform bound 2(1+h)^2 d/X.
+// Since X >= X_tail throughout the replacement, evaluating at X_tail bounds
+// the complete cutoff-weighted moment integrals as well.
+inline AppendixA7LeadingHeatErrorAudit appendix_a7_leading_heat_error_audit(
+    const OuterProfileParameters& p, double eta,
+    double Tf = 20.0, double co = 0.05) {
+    const auto scales = appendix_a7_schedule_scales(p, eta, Tf, co);
+    const double h = std::exp(p.log_h);
+    const double d = 1.0 - eta * eta;
+    if (!(h > 0.0 && d > 0.0))
+        throw std::invalid_argument("A.7 heat error audit requires h>0 and |eta|<1");
+
+    AppendixA7LeadingHeatErrorAudit out;
+    out.log_relative_bound_CpS = std::log(2.0) + 2.0 * std::log1p(h) +
+                                 std::log(d) - scales.log_X_tail;
+    out.log_relative_bound_I = std::log1p(h) + std::log(2.0 + h) +
+                               std::log(d) - scales.log_X_tail;
     return out;
 }
 
