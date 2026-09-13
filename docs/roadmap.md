@@ -80,16 +80,19 @@
 8. Appendix A.4 / Lemma A.5 pressure datum (A.21)–(A.23) — **実装・CI回帰済み**
 9. Appendix A.6 / Lemma A.6 exact heat factor (A.32)–(A.39) — **実装・CI回帰済み**
 10. Proposition A.7 second reserved patch の `Cp,S,I` 3-moment compensation core — **実装・CI回帰済み**
-11. Proposition A.7 の full schedule coupling — **次の対象**
-    - terminal heat replacement の実スケール discrepancy を積分
-    - second reserved patch の3係数へ接続
-    - replacement + compensation 後に global `Cp,S,I` と axis pressure datum が復元されることを end-to-end 回帰
+11. Proposition A.7 の full schedule coupling — **進行中**
+    - terminal heat replacement の normalized discrepancy → second patch bridge — **実装・runtime回帰済み**
+    - A.2/A.3 full schedule から `X_patch,e_patch,X_tail,e_tail` の相対スケール抽出 — **log-spaceで実装・回帰済み**
+    - ordered regime の heat discrepancy を signed-log で評価 — **実装・回帰済み**
+    - underflow-scale の3-moment target を rescaled Jacobian で解き、係数を signed-log で保持 — **実装済み・CI確認中**
+    - quadratic remainder が一次補正より指数的に小さいことの log bound — **実装済み・CI確認中**
+    - exact heat factor と leading signed-log 式の誤差 bound を閉じ、replacement + compensation 後の global `Cp,S,I` と axis pressure datum を1つの end-to-end 結果型で回帰 — **残作業**
 12. Appendix B analytic axis profile と moment matching
 13. Appendix C admissible stress cone realization
 14. Sections 6–7 の oscillatory pulse と平均 stress
 15. residual improvement と final forcing
 
-A.9 の4つの reserved intervals は用途を混同しない。現在使用を開始したのは heat compensation 用の **second reserved patch** だけで、他は後段の construction 用に保持する。
+A.9 の4つの reserved intervals は用途を混同しない。現在使用しているのは heat compensation 用の **second reserved patch** だけで、他は後段の construction 用に保持する。
 
 ## Step 5 — 動的リスケーリング
 
@@ -107,7 +110,7 @@ A.9 の4つの reserved intervals は用途を混同しない。現在使用を�
 - 可視化 SVG/GIF: `results/figures/`
 - 自動レポート: `reports/`
 
-Appendix A.6/A.7 の軽量診断は `results/reference/appendix_a6_a7_heat.csv` に保存し、heat ODE residual、3×3 compensation Jacobian、moment recovery error を追跡する。
+Appendix A.6/A.7 の軽量診断は `results/reference/appendix_a6_a7_heat.csv` に保存し、heat ODE residual、3×3 compensation Jacobian、moment recovery error に加えて、ordered regime の signed-log target、補正係数スケール、quadratic-to-linear bound を追跡する。
 
 main 更新時に GitHub Actions が軽量な基準計算を実行し、結果を自動コミットする。
 
