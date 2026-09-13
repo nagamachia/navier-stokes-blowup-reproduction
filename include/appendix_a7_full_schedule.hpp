@@ -54,7 +54,7 @@ inline AppendixA7MomentChange appendix_a7_heat_tail_discrepancy_normalized(
     AppendixA7MomentChange out;
     auto sample = [&](double y) {
         const double x = std::exp(y);
-        const double ratio = appendix_a6_terminal_replacement_ratio(y, XK * x, eta, h);
+        const double ratio = appendix_a6_terminal_replacement_ratio(XK * x, eta, h, y);
         const double e0 = std::pow(x, -0.5 - h);
         const double de = e0 * (ratio - 1.0);
         const double dE2 = 2.0 * e0 * de + de * de;
