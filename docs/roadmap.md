@@ -80,20 +80,21 @@
 8. Appendix A.4 / Lemma A.5 pressure datum (A.21)–(A.23) — **実装・CI回帰済み**
 9. Appendix A.6 / Lemma A.6 exact heat factor (A.32)–(A.39) — **実装・CI回帰済み**
 10. Proposition A.7 second reserved patch の `Cp,S,I` 3-moment compensation core — **実装・CI回帰済み**
-11. Proposition A.7 の full schedule coupling — **進行中**
-    - terminal heat replacement の normalized discrepancy → second patch bridge — **実装・runtime回帰済み**
-    - A.2/A.3 full schedule から `X_patch,e_patch,X_tail,e_tail` の相対スケール抽出 — **log-spaceで実装・回帰済み**
-    - ordered regime の heat discrepancy を signed-log で評価 — **実装・回帰済み**
-    - ordered regime の3 target の log spread と dominant linear correction を監査 — **実装・CI回帰済み**
-    - quadratic term は dominant target より小さいが、最小 target より大きくなり得る精度階層を検出 — **実装・CI回帰済み**
-    - exact heat factor と leading signed-log 式の相対誤差 bound — **実装・CI回帰済み**
-    - 階層的 nonlinear correction / contraction を Lemma A.2 と対応する形で監査し、global `Cp,S,I` と axis pressure datum restoration の再現範囲を確定 — **次の対象**
-12. Appendix B analytic axis profile と moment matching
+11. Proposition A.7 full schedule coupling / nonlinear recovery audit — **数値再現完了・CI回帰済み**
+    - terminal heat replacement の normalized discrepancy → second patch bridge
+    - A.2/A.3 full schedule から `X_patch,e_patch,X_tail,e_tail` の相対スケールを log-space で抽出
+    - ordered regime の heat discrepancy を signed-log で評価
+    - exact heat factor と leading signed-log 式の相対誤差を上から評価
+    - 3 target の巨大な log spread を明示し、通常倍精度での componentwise exact solve を禁止
+    - `B^{-1}` と quadratic map `Q` の有限次元 operator bound から Lemma A.2 fixed-point map の contraction factor を log-space で評価
+    - exact heat remainder を contraction bound に伝播し、exact heat discrepancy に対する small nonlinear recovery branch の存在・一意性を監査
+    - `Cp` が axis pressure datum increment と同じ条件であることを end-to-end result に統合
+12. Appendix B analytic axis profile と moment matching — **次の対象**
 13. Appendix C admissible stress cone realization
 14. Sections 6–7 の oscillatory pulse と平均 stress
 15. residual improvement と final forcing
 
-A.9 の4つの reserved intervals は用途を混同しない。現在使用しているのは heat compensation 用の **second reserved patch** だけで、他は後段の construction 用に保持する。
+A.9 の4つの reserved intervals は用途を混同しない。現在使用済みなのは heat compensation 用の **second reserved patch** だけで、他は後段の construction 用に保持する。
 
 ## Step 5 — 動的リスケーリング
 
@@ -111,10 +112,12 @@ A.9 の4つの reserved intervals は用途を混同しない。現在使用し�
 - 可視化 SVG/GIF: `results/figures/`
 - 自動レポート: `reports/`
 
-Appendix A.6/A.7 の軽量診断は `results/reference/appendix_a6_a7_heat.csv` に保存し、heat ODE residual、3×3 compensation Jacobian、moment recovery error に加えて、ordered regime の signed-log target、target log spread、quadratic-to-dominant ratio、leading-asymptotic relative-error bound を追跡する。
+Appendix A.6/A.7 の軽量診断は `results/reference/appendix_a6_a7_heat.csv` に保存し、heat ODE residual、3×3 compensation Jacobian、moderate-regime moment recovery error、ordered-regime signed-log target、target log spread、quadratic scale、leading-asymptotic relative-error bound、nonlinear contraction bound、exact-target recovery certification を追跡する。
 
 main 更新時に GitHub Actions が軽量な基準計算を実行し、結果を自動コミットする。
 
 ## 科学的注意
+
+ここでの「A.7 数値再現完了」は、通常倍精度で全ての指数的に小さい係数を直接表示したという意味ではない。moderate regime では直接回帰し、ordered regime では log-space の厳密なスケール管理と有限次元 contraction bound により再現範囲を閉じている。これは Proposition A.7 の数学的証明そのものを新たに与えるものではない。
 
 数値計算は特異時刻直前の挙動やスケーリング則との整合性を示す証拠にはなるが、それだけで有限時間特異性を数学的に証明することはできない。逆に、低解像度で特異的挙動が見えないことも、解析構成が誤りである証拠にはならない。
