@@ -1,6 +1,6 @@
 #include "appendix_a6_heat.hpp"
 #include "appendix_a7_heat_compensation.hpp"
-#include "appendix_a7_log_compensation.hpp"
+#include "appendix_a7_full_recovery.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
           "ordered_target_log_s,ordered_target_log_i,target_log_spread,"
           "quadratic_to_dominant_log_ratio,quadratic_log_magnitude,"
           "leading_error_log_bound_cps,leading_error_log_bound_i,"
-          "all_components_resolvable_in_double\n";
+          "log_contraction_factor_bound,exact_target_log_contraction_factor_bound,"
+          "nonlinear_recovery_certified,all_components_resolvable_in_double\n";
     os << std::setprecision(15);
 
     constexpr double h = 0.08;
@@ -56,22 +57,23 @@ int main(int argc, char** argv) {
         for (std::size_t i = 0; i < target.size(); ++i)
             err = std::max(err, std::abs(recovered[i] - target[i]));
 
-        const auto log_target = appendix_a7_leading_heat_log_discrepancy(ordered, eta);
-        const auto hierarchy = appendix_a7_audit_ordered_heat_compensation(
+        const auto full = appendix_a7_full_recovery_audit(
             ordered, eta, 20.0, 0.05, 1024);
-        const auto asymptotic = appendix_a7_leading_heat_error_audit(ordered, eta);
 
         os << eta << ',' << heat_ratio << ',' << ode << ',' << det << ','
            << err << ',' << solved[0] << ',' << solved[1] << ',' << solved[2] << ','
-           << log_target.patch_target_Cp.log_abs << ','
-           << log_target.patch_target_S.log_abs << ','
-           << log_target.patch_target_I.log_abs << ','
-           << hierarchy.target_log_spread << ','
-           << hierarchy.quadratic_to_dominant_log_ratio << ','
-           << hierarchy.quadratic_log_magnitude << ','
-           << asymptotic.log_relative_bound_CpS << ','
-           << asymptotic.log_relative_bound_I << ','
-           << (hierarchy.all_components_resolvable_in_double ? 1 : 0) << '\n';
+           << full.leading.patch_target_Cp.log_abs << ','
+           << full.leading.patch_target_S.log_abs << ','
+           << full.leading.patch_target_I.log_abs << ','
+           << full.compensation.target_log_spread << ','
+           << full.compensation.quadratic_to_dominant_log_ratio << ','
+           << full.compensation.quadratic_log_magnitude << ','
+           << full.heat_error.log_relative_bound_CpS << ','
+           << full.heat_error.log_relative_bound_I << ','
+           << full.compensation.log_contraction_factor_bound << ','
+           << full.exact_target_log_contraction_factor_bound << ','
+           << (full.exact_heat_nonlinear_recovery_certified ? 1 : 0) << ','
+           << (full.direct_double_exact_recovery_available ? 1 : 0) << '\n';
     }
 
     std::cout << "wrote Appendix A.6/A.7 diagnostics to " << out << "\n";
