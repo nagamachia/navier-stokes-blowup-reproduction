@@ -110,6 +110,35 @@ inline double appendix_b_brho_deta_bound(std::size_t na,std::size_t nb,double rh
     return C;
 }
 
+// Finite-truncation counterpart of the mixed estimate (B.6):
+// ||J_nu[(d_eta F)(D_X G)]|| <= C ||F|| ||G||.
+// If average_first=true, F is replaced by A_X(F), as also allowed in the paper.
+inline double appendix_b_brho_mixed_Jnu_bound(
+    std::size_t na,std::size_t nb,double rho,int nu,bool average_first=false) {
+    if(nu!=1 && nu!=2) throw std::invalid_argument("mixed Jnu requires nu=1 or 2");
+    double C=0.0;
+    for(std::size_t a=0;a<na;++a) for(std::size_t b=0;b<=nb;++b) {
+        double s=0.0;
+        for(std::size_t i=0;i<=a;++i) {
+            const std::size_t j=a-i;
+            if(j==0) continue; // D_X annihilates radial degree zero.
+            for(std::size_t r=0;r<=b;++r) {
+                const std::size_t q=b-r;
+                if(r+1>nb) continue;
+                double left=appendix_b_brho_weight(i,r+1,rho);
+                if(average_first) left/=static_cast<double>(i+1);
+                s += appendix_b_brho_binomial(b,r)
+                    * left * static_cast<double>(j)
+                    * appendix_b_brho_weight(j,q,rho);
+            }
+        }
+        const double den=static_cast<double>(a+1)*static_cast<double>(a+nu);
+        const double outw=appendix_b_brho_weight(a+1,b,rho);
+        C=std::max(C,s/(den*outw));
+    }
+    return C;
+}
+
 struct AppendixBRhoOperatorAudit {
     std::size_t radial_order{};
     std::size_t eta_order{};
@@ -121,6 +150,10 @@ struct AppendixBRhoOperatorAudit {
     double J1{};
     double J2{};
     double deta{};
+    double mixed_J1{};
+    double mixed_J2{};
+    double mixed_AX_J1{};
+    double mixed_AX_J2{};
 };
 
 inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
@@ -132,7 +165,11 @@ inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
         appendix_b_brho_I_bound(na,nb,rho),
         appendix_b_brho_Jnu_bound(na,nb,rho,1),
         appendix_b_brho_Jnu_bound(na,nb,rho,2),
-        appendix_b_brho_deta_bound(na,nb,rho)};
+        appendix_b_brho_deta_bound(na,nb,rho),
+        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,false),
+        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,false),
+        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,true),
+        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,true)};
 }
 
 } // namespace nsblowup
