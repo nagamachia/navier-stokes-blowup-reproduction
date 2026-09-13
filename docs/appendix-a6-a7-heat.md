@@ -70,9 +70,21 @@ A.9 の **second reserved patch**（heat compensation 用、log-width 5）を no
 
 係数は既存の Lemma A.2 実装 `solve_small_quadratic_moment_system()` を用いて zero-start branch から解く。回帰では `eta` sweep に対して normalized Jacobian の非退化、既知の小係数から生成した3 discrepancy の exact recovery、`f(eta)` に由来する `eta -> -eta` 対称性を確認する。
 
-## 4. 現在の実装境界
+## 4. full schedule coupling と log-space 表現
 
-実装済み:
+A.2/A.3 の radial schedule から、second reserved patch と terminal heat tail の自然スケールを `include/appendix_a7_schedule_scales.hpp` で抽出する。ordered regime では両者が指数的に離れるため、`X_patch/X_tail` や `e_patch/e_tail` を通常の `double` として直接生成せず、すべて `log X`, `log e` で追跡する。
+
+`lambda=1e-5`, `log h=-80` の基準では、second reserved patch と terminal tail の radial scale は `log X` で 10^6 オーダー離れる。このため、heat replacement により生じる実スケールの `Cp,S,I` discrepancy と、それを second reserved patch に換算した補正 target は通常の倍精度浮動小数点の下限を下回る。
+
+この underflow は「補正が不要」という意味ではない。`include/appendix_a7_log_discrepancy.hpp` では (A.38) の leading expansion を使い、heat discrepancy を符号付き `log|Delta|` として保持する。cutoff 後の無限 tail は解析積分しており、小さい `h` でも有限窓打ち切り誤差を入れない。
+
+さらに `include/appendix_a7_log_compensation.hpp` では、3つの target の最大 log magnitude を共通スケールとして取り出し、scaled Jacobian system を解く。係数そのものは符号付き log 表現で保持する。quadratic remainder は一次項よりさらに共通スケール `exp(L)` を1個余分に持つため、ordered regime では exact quadratic branch と linearized branch の差が表現限界よりはるかに小さいことを log bound で監査する。
+
+`Cp` は axis pressure datum の increment そのものなので、同じ3-moment solve の第1成分を通じて pressure datum restoration も同じ scaled representation で追跡する。
+
+## 5. 現在の実装境界
+
+実装・CI回帰済み:
 
 - (A.32) heat factor integral
 - (A.34) derivative integral
@@ -82,11 +94,16 @@ A.9 の **second reserved patch**（heat compensation 用、log-width 5）を no
 - (A.39) terminal heat replacement ratio
 - Proposition A.7 の second reserved patch 上の 3-bump exact quadratic moment map
 - Lemma A.1 / A.2 を用いた `Cp,S,I` compensation solver
+- terminal heat replacement の normalized discrepancy と second patch solver の runtime bridge
+- A.2/A.3 full schedule から second patch / terminal tail の相対自然スケールを log-space で抽出
+- ordered regime の heat discrepancy を signed-log で評価
+- underflow-scale target を scaled Jacobian で解き、補正係数を signed-log で保持
+- quadratic-to-linear remainder bound と pressure (`Cp`) target の整合性回帰
 
-未接続:
+未完了:
 
-- A.2/A.3 の full radial schedule から terminal tail の実スケール `X_K`, `e_K` を取り出す処理
-- heat replacement が tail 全体に与える `(Delta Cp, Delta S, Delta I)` を full schedule の単位系で積分する処理
-- その実 discrepancy を second reserved patch solver へ渡して、replacement + compensation 後の global moments と axis pressure datum が元値へ戻ることの end-to-end 回帰
+- exact heat factor `H` による full discrepancy と large-X leading signed-log 式の誤差を、scaled asymptotic bound として end-to-end で閉じること
+- replacement + compensation 後の `Cp,S,I` および axis pressure datum の recovery を、full schedule 全体の1つの結果型としてまとめること
+- その end-to-end 診断を `results/reference/appendix_a6_a7_heat.csv` とレポートに固定し、Proposition A.7 を完了扱いにすること
 
-したがって現時点では Proposition A.7 の有限次元 compensation mechanism までを実装済みとし、full schedule を含む Proposition A.7 全体の完了とは扱わない。
+したがって Proposition A.7 の full schedule coupling は大部分まで接続済みだが、まだ完了扱いにはしない。A.9 の残り3つの reserved intervals は引き続き未変更のまま保持する。
