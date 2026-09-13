@@ -19,6 +19,11 @@ struct AppendixA7LogCompensationAudit {
     Vector dominant_scaled_linear_residual{};
     double quadratic_to_dominant_log_ratio{};
     double quadratic_log_magnitude{};
+    double inverse_jacobian_inf_bound{};
+    double quadratic_operator_inf_bound{};
+    double log_contraction_factor_bound{};
+    double log_fixed_point_radius_bound{};
+    bool nonlinear_branch_contraction_certified{};
     bool all_components_resolvable_in_double{};
 };
 
@@ -27,6 +32,14 @@ struct AppendixA7LogCompensationAudit {
 // scaled to O(1), so the returned coefficients describe the dominant linear
 // direction. Tiny target components may underflow in this representation and
 // are therefore reported through target_log_spread rather than declared solved.
+//
+// For the exact nonlinear branch write c=eps*z, eps=exp(Lmax). After row
+// scaling the equation is
+//     Bs z + eps Qs(z,z) = d,  ||d||_inf = 1.
+// Let beta >= ||Bs^{-1}||_inf and q >= ||Qs||_{inf,inf->inf}. On the ball
+// ||z||<=2 beta, the zero-start fixed-point map is invariant and contractive
+// whenever 4*eps*beta^2*q < 1. We store the logarithm of this quantity so the
+// paper's exponentially ordered regime never underflows.
 inline AppendixA7LogCompensationAudit appendix_a7_audit_log_compensation(
     double eta, double lambda,
     const AppendixA7SignedLogMoment& target_Cp,
@@ -67,12 +80,48 @@ inline AppendixA7LogCompensationAudit appendix_a7_audit_log_compensation(
         residual[i]=v;
     }
 
-    const Vector q=solver.quadratic_remainder(c_scaled,c_scaled);
-    const double qnorm=norm_inf(q);
+    const Vector q_at_c=solver.quadratic_remainder(c_scaled,c_scaled);
+    const double qnorm=norm_inf(q_at_c);
     const double rhsnorm=std::max(1e-300,norm_inf(rhs));
     const double log_q_ratio = qnorm>0.0
         ? Lmax + std::log(qnorm/rhsnorm)
         : -INFINITY;
+
+    // Compute ||Bs^{-1}||_inf from its three columns.
+    Matrix inv(3,Vector(3,0.0));
+    for(std::size_t k=0;k<3;++k){
+        Vector e(3,0.0); e[k]=1.0;
+        const Vector col=solve_linear(Bs,e);
+        for(std::size_t i=0;i<3;++i) inv[i][k]=col[i];
+    }
+    double beta=0.0;
+    for(std::size_t i=0;i<3;++i){
+        double rowsum=0.0;
+        for(double v:inv[i]) rowsum+=std::abs(v);
+        beta=std::max(beta,rowsum);
+    }
+
+    // Bound the row-scaled bilinear map by summing absolute coefficients
+    // Qs_i(e_j,e_k). This is a direct finite-dimensional operator-norm bound.
+    double qbound=0.0;
+    for(std::size_t i=0;i<3;++i){
+        double rowsum=0.0;
+        for(std::size_t j=0;j<3;++j){
+            Vector ej(3,0.0); ej[j]=1.0;
+            for(std::size_t k=0;k<3;++k){
+                Vector ek(3,0.0); ek[k]=1.0;
+                const Vector qjk=solver.quadratic_remainder(ej,ek);
+                rowsum+=std::abs(qjk[i]/row_scale[i]);
+            }
+        }
+        qbound=std::max(qbound,rowsum);
+    }
+    if (!(beta>0.0 && qbound>0.0 && std::isfinite(beta) && std::isfinite(qbound)))
+        throw std::runtime_error("invalid A.7 contraction constants");
+
+    const double log_contraction = Lmax + std::log(4.0) +
+        2.0*std::log(beta) + std::log(qbound);
+    const double log_radius = Lmax + std::log(2.0*beta);
 
     AppendixA7LogCompensationAudit out;
     out.largest_target_log=Lmax;
@@ -85,6 +134,11 @@ inline AppendixA7LogCompensationAudit appendix_a7_audit_log_compensation(
     out.quadratic_log_magnitude = qnorm>0.0
         ? 2.0*Lmax+std::log(qnorm)
         : -INFINITY;
+    out.inverse_jacobian_inf_bound=beta;
+    out.quadratic_operator_inf_bound=qbound;
+    out.log_contraction_factor_bound=log_contraction;
+    out.log_fixed_point_radius_bound=log_radius;
+    out.nonlinear_branch_contraction_certified=log_contraction<0.0;
 
     // exp(-~36) is already close to the practical component-resolution limit
     // once matrix conditioning and quadrature errors are included. This flag
