@@ -54,6 +54,19 @@ int main() {
                 return 3;
             }
         }
+
+        const auto audit = nsblowup::appendix_b_linear_operator_audit(chi, 4.1, 32);
+        if (!(std::abs(audit.J1_bound - 4.1) < 1e-14 &&
+              std::abs(audit.J2_bound - 2.05) < 1e-14)) {
+            std::cerr << "B.5 weighted Jnu bounds changed\n";
+            return 4;
+        }
+        if (!(audit.T_bound <= 1.025 + 1e-14 &&
+              audit.inverse_residual_norm < 1e-12 &&
+              audit.phi0_norm > 0.0 && audit.inverse_image_norm > 0.0)) {
+            std::cerr << "B.5 weighted linear operator audit failed\n";
+            return 5;
+        }
     }
 
     const nsblowup::BPolynomial constant{2.0};
@@ -61,7 +74,7 @@ int main() {
     const auto j2 = nsblowup::appendix_b_Jnu(constant, 2);
     if (!(std::abs(j1[1] - 2.0) < 1e-15 && std::abs(j2[1] - 1.0) < 1e-15)) {
         std::cerr << "B.5 Jnu coefficient formula failed\n";
-        return 4;
+        return 6;
     }
 
     return 0;
