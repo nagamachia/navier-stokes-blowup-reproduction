@@ -2,7 +2,6 @@
 
 #include "appendix_a7_schedule_scales.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -24,23 +23,23 @@ struct AppendixA7LeadingHeatLogDiscrepancy {
 
 namespace detail {
 
-template<class F>
-inline double positive_simpson_log_integral(F&& f, double y_max,
-                                            std::size_t panels = 4096) {
-    if (!(y_max > 0.5)) throw std::invalid_argument("A.7 log integral window is too short");
+inline double cutoff_exp_integral_log(double alpha, std::size_t panels = 1024) {
+    if (!(alpha > 0.0)) throw std::invalid_argument("A.7 decay rate must be positive");
     if (panels < 2) panels = 2;
     if (panels % 2) ++panels;
-    const double dy = y_max / static_cast<double>(panels);
+    constexpr double b = 0.5;
+    const double dy = b / static_cast<double>(panels);
     double sum = 0.0;
     for (std::size_t i = 0; i <= panels; ++i) {
         const double y = dy * static_cast<double>(i);
+        const double chi = appendix_a_smooth_step((y - 0.2) / 0.3);
+        const double v = chi * std::exp(-alpha * y);
         const double w = (i == 0 || i == panels) ? 1.0 : (i % 2 ? 4.0 : 2.0);
-        sum += w * f(y);
+        sum += w * v;
     }
-    const double value = sum * dy / 3.0;
-    if (!(value > 0.0 && std::isfinite(value)))
-        throw std::runtime_error("A.7 leading heat integral is not positive finite");
-    return std::log(value);
+    const double transition = sum * dy / 3.0;
+    const double tail = std::exp(-alpha * b) / alpha;
+    return std::log(transition + tail);
 }
 
 } // namespace detail
@@ -52,7 +51,7 @@ inline AppendixA7LeadingHeatLogDiscrepancy
 appendix_a7_leading_heat_log_discrepancy(
     const OuterProfileParameters& p, double eta,
     double Tf = 20.0, double co = 0.05,
-    double y_max = 160.0, std::size_t panels = 4096) {
+    std::size_t panels = 1024) {
     const auto scales = appendix_a7_schedule_scales(p, eta, Tf, co);
     const double h = std::exp(p.log_h);
     const double d = 1.0 - eta * eta;
@@ -60,25 +59,15 @@ appendix_a7_leading_heat_log_discrepancy(
         throw std::invalid_argument("leading A.7 heat log discrepancy requires h>0 and |eta|<1");
 
     const double log_a = std::log(2.0) + std::log(h) + std::log1p(h) + std::log(d);
-    auto chi = [](double y) { return appendix_a_smooth_step((y - 0.2) / 0.3); };
-
-    const double log_int_cp = detail::positive_simpson_log_integral(
-        [&](double y) { return chi(y) * std::exp(-(2.0 + 2.0 * h) * y); },
-        y_max, panels);
-    const double log_int_s = detail::positive_simpson_log_integral(
-        [&](double y) { return chi(y) * std::exp(-(1.0 + 2.0 * h) * y); },
-        y_max, panels);
-    const double log_int_i = detail::positive_simpson_log_integral(
-        [&](double y) { return chi(y) * std::exp(-h * y); },
-        y_max, panels);
+    const double log_int_cp = detail::cutoff_exp_integral_log(2.0 + 2.0 * h, panels);
+    const double log_int_s = detail::cutoff_exp_integral_log(1.0 + 2.0 * h, panels);
+    const double log_int_i = detail::cutoff_exp_integral_log(h, panels);
 
     AppendixA7LeadingHeatLogDiscrepancy out;
     out.Cp = {-1, log_a + log_int_cp - scales.log_X_tail};
     out.S  = {+1, log_a + log_int_s  - scales.log_X_tail};
     out.I  = {-1, 0.5 * std::log(2.0) + log_a + log_int_i - scales.log_X_tail};
 
-    // The compensation target has the opposite sign and is converted from
-    // tail natural units to the second-patch normalized units.
     out.patch_target_Cp = {+1, out.Cp.log_abs + scales.log_target_scale_Cp};
     out.patch_target_S  = {-1, out.S.log_abs  + scales.log_target_scale_S};
     out.patch_target_I  = {+1, out.I.log_abs  + scales.log_target_scale_I};
