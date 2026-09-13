@@ -57,14 +57,18 @@ inline AppendixA7ScheduleScales appendix_a7_schedule_scales(
     double logX = 0.0;
     double logE = p.log_Pstar + std::log(outer_shape_f(eta));
 
-    auto advance = [&](double length, auto&& l) {
+    auto advance_variable = [&](double length, auto&& l) {
         logE = detail::integrate_log_e(logE, length, l, max_step);
         logX += length;
     };
+    auto advance_constant = [&](double length, double l) {
+        logE += (l - 0.5) * length;
+        logX += length;
+    };
 
-    advance(1.0, [](double y) { return outer_l_first_transition(y); });
-    advance(p.Td(), [](double) { return 0.0; });
-    advance(1.0, [&](double y) { return outer_l_intermediate_entry(y, p.lambda); });
+    advance_variable(1.0, [](double y) { return outer_l_first_transition(y); });
+    advance_constant(p.Td(), 0.0);
+    advance_variable(1.0, [&](double y) { return outer_l_intermediate_entry(y, p.lambda); });
 
     const auto patches = reserved_patches_a9(p.lambda);
     const double hold_start_X = logX;
@@ -74,47 +78,31 @@ inline AppendixA7ScheduleScales appendix_a7_schedule_scales(
     const double log_E_patch = hold_start_E + (-0.5 - p.lambda) * patch_offset;
     const double log_e_patch = log_E_patch - std::log(outer_shape_f(eta));
 
-    advance(p.Tw(), [&](double) { return -p.lambda; });
+    advance_constant(p.Tw(), -p.lambda);
 
     const double pulse_len = 13.0 / p.lambda;
-    advance(pulse_len, [&](double) { return -p.lambda; });
+    advance_constant(pulse_len, -p.lambda);
 
     auto lint = [&](double y) {
         return detail::profile_interpolation_l(y, eta, p.lambda, Tf);
     };
-    advance(Tf, lint);
+    advance_variable(Tf, lint);
 
     const double uniform_len = 30.0 * std::log(1.0 / p.lambda);
-    const double first_center = uniform_len - 3.0;
-    advance(first_center, [&](double) { return -p.lambda; });
-
-    const double target_rI = 1.0 / (1.0 - p.lambda);
-    double rI = target_rI;
-    const auto ip = appendix_a3_close_angular_I_pressure(p.lambda, 0.0, 0.0);
-    (void)rI;
-    auto corrected_l = [&](double t) {
-        const double y = first_center + t;
-        const double b1 = appendix_a3_unit_bump(y, first_center);
-        const double b2 = appendix_a3_unit_bump(y, uniform_len - 1.0);
-        const double factor = 1.0 + ip.c1 * b1 + ip.c2 * b2;
-        const double fp = ip.c1 * detail::bump_derivative(y, first_center) +
-                          ip.c2 * detail::bump_derivative(y, uniform_len - 1.0);
-        return -p.lambda + fp / factor;
-    };
-    advance(3.0, corrected_l);
+    advance_constant(uniform_len, -p.lambda);
 
     auto ldown = [&](double y) {
         return -p.lambda + (-1.0 + p.lambda) * appendix_a_smooth_step(y);
     };
-    advance(1.0, ldown);
+    advance_variable(1.0, ldown);
 
     const double hold1 = 4.0 * std::log(1.0 / h);
-    advance(hold1, [](double) { return -1.0; });
+    advance_constant(hold1, -1.0);
 
     auto lup = [&](double y) {
         return -1.0 + (1.0 - h) * appendix_a_smooth_step(y);
     };
-    advance(1.0, lup);
+    advance_variable(1.0, lup);
 
     double Q = (p.lambda - h) / (1.0 - p.lambda);
     Q = detail::integrate_Q(Q, 1.0, h, ldown, max_step);
@@ -125,10 +113,10 @@ inline AppendixA7ScheduleScales appendix_a7_schedule_scales(
     if (!(Q > Qp && Qp > 0.0))
         throw std::runtime_error("exterior Q hold is not well ordered in A.7 scale audit");
     const double hold_h = std::log(Q / Qp) / (1.0 - h);
-    advance(hold_h, [&](double) { return -h; });
+    advance_constant(hold_h, -h);
 
     auto lterm = [&](double y) { return outer_terminal_l(y, h, rho_o); };
-    advance(3.0, lterm);
+    advance_variable(3.0, lterm);
 
     AppendixA7ScheduleScales out;
     out.log_X_patch = log_X_patch;
