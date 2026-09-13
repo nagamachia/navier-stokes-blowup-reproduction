@@ -32,6 +32,10 @@ inline double appendix_b_A(double h) { return 0.5 + h; }
 inline double appendix_b_D(double h) { return 0.5 - h; }
 inline double appendix_b_d(double eta) { return 1.0 - eta * eta; }
 inline double appendix_b_L(double eta, double h) { return 1.0 - 2.0 * h * eta * eta; }
+inline double appendix_b_Ustar(double eta, double j0) { return 4.0 * eta + j0; }
+inline double appendix_b_Hstar(double eta, double h, double j0) {
+    return appendix_b_D(h) * eta + appendix_b_d(eta) * appendix_b_Ustar(eta, j0);
+}
 
 inline AppendixBAxisData appendix_b_axis_data(
     const OuterProfileParameters& p, double eta, double j0 = 0.05,
@@ -46,9 +50,9 @@ inline AppendixBAxisData appendix_b_axis_data(
     const double A = appendix_b_A(h);
     const double D = appendix_b_D(h);
     const double d = appendix_b_d(eta);
-    const double U = 4.0 * eta + j0;
+    const double U = appendix_b_Ustar(eta, j0);
     const double Ueta = 4.0;
-    const double H = D * eta + d * U;
+    const double H = appendix_b_Hstar(eta, h, j0);
     const double W = 1.0 - d * Ueta - 2.0 * D * eta * U;
 
     const auto pressure = appendix_a4_pressure_datum(p, eta, Tf, co, max_step);
@@ -68,35 +72,29 @@ inline double appendix_b_find_H_zero(
     const OuterProfileParameters& p, double j0 = 0.05,
     double tol = 1e-13) {
     const double h = std::exp(p.log_h);
-    const double D = appendix_b_D(h);
-    auto H = [&](double eta) {
-        return D * eta + appendix_b_d(eta) * (4.0 * eta + j0);
-    };
+    auto H = [&](double eta) { return appendix_b_Hstar(eta, h, j0); };
     double a = -0.999999, b = 0.0;
-    double fa = H(a), fb = H(b);
-    if (!(fa < 0.0 && fb > 0.0))
+    const double fa0 = H(a), fb0 = H(b);
+    if (!(fa0 < 0.0 && fb0 > 0.0))
         throw std::runtime_error("Appendix B H* root is not bracketed in (-1,0)");
     for (int iter = 0; iter < 100; ++iter) {
         const double m = 0.5 * (a + b);
         const double fm = H(m);
         if (std::abs(fm) < tol || b - a < tol) return m;
-        if (fm > 0.0) { b = m; fb = fm; }
-        else { a = m; fa = fm; }
+        if (fm > 0.0) b = m;
+        else a = m;
     }
     return 0.5 * (a + b);
 }
 
 inline AppendixBSeparationAudit appendix_b_separation_audit(
     const OuterProfileParameters& p, double j0 = 0.05,
-    double Tf = 20.0, double co = 0.05, double max_step = 0.02,
-    int eta_samples = 801) {
+    double Tf = 20.0, double co = 0.05, double max_step = 0.03,
+    int eta_samples = 241) {
     if (eta_samples < 101) eta_samples = 101;
     const double eta0 = appendix_b_find_H_zero(p, j0);
     const auto root_data = appendix_b_axis_data(p, eta0, j0, Tf, co, max_step);
 
-    // B.2 only requires some delta_* whose small-|Z*| set avoids eta0.
-    // We work in the P_*^{-2} normalization and take half the positive value
-    // at the H* zero, leaving a strict margin.
     const double delta = 0.5 * root_data.normalized_Zstar;
     if (!(delta > 0.0))
         throw std::runtime_error("Appendix B requires Z*(eta0)>0");
@@ -115,8 +113,6 @@ inline AppendixBSeparationAudit appendix_b_separation_audit(
     if (!saw_small_Z || !(min_abs_H > 0.0) || !std::isfinite(min_abs_H))
         throw std::runtime_error("Appendix B failed to resolve the small-|Z*| separation set");
 
-    // Choose sigma_* with comfortable strict slack: sigma = 0.05 min|H|.
-    // Then chi >= 1/(1+0.05^2) > 0.9975 on the audited set.
     const double sigma = 0.05 * min_abs_H;
     double min_chi = 1.0;
     for (int i = 0; i < eta_samples; ++i) {
@@ -145,8 +141,10 @@ inline AppendixBSeparationAudit appendix_b_separation_audit(
 inline double appendix_b_zeta_star(
     const OuterProfileParameters& p, double eta, double sigma_star,
     double j0 = 0.05) {
+    if (!(sigma_star > 0.0))
+        throw std::invalid_argument("Appendix B requires sigma_*>0");
     const double h = std::exp(p.log_h);
-    const double H = appendix_b_axis_data(p, eta, j0).Hstar;
+    const double H = appendix_b_Hstar(eta, h, j0);
     const double L = appendix_b_L(eta, h);
     return -L * H / (H * H + sigma_star * sigma_star);
 }
@@ -174,6 +172,7 @@ inline double appendix_b_log_phi_star(
     return Lambda * (eta >= 0.0 ? integral : -integral);
 }
 
+// Equation (B.11): f0(z)=sum_{alpha>=0}(-z/2)^alpha/[alpha!(alpha+1)!].
 inline double appendix_b_f0(double z, int terms = 80) {
     if (!(z >= 0.0)) throw std::invalid_argument("Appendix B f0 requires z>=0");
     double sum = 1.0;
