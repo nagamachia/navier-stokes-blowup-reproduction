@@ -1,6 +1,8 @@
+#include "appendix_b_multiplier_audit.hpp"
 #include "appendix_b_nonlinear_remainder.hpp"
 #include "appendix_b_parameter_scale.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -62,10 +64,36 @@ int main() {
         std::cerr << "ordered Appendix B Lambda scale was not larger than P_*^2\n";
         return 7;
     }
+
+    // Finite (alpha,beta) audit of the manuscript B-rho weight (B.4).
+    const auto brho = appendix_b_brho_operator_audit(18, 6, 0.01);
+    if (!(brho.product > 0.0 && brho.J1 > 0.0 && brho.J2 > 0.0 && brho.deta > 0.0))
+        return 8;
+    const auto sep = appendix_b_separation_audit(p, 0.05, 20.0, 0.05, 0.05, 121);
+    const auto mult = appendix_b_sample_multiplier_norms(
+        std::exp(p.log_h), 0.05, sep.sigma_star, sep.eta0, 0.01, 6, 1201);
+    if (!(mult.norms.invL > 0.0 && mult.norms.zeta > 0.0) ||
+        !std::isfinite(mult.norms.zeta)) return 9;
+
+    const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
+    const double u0_bound = std::exp(scale.max_log_abs_u0_Ymax);
+    const auto budget = appendix_b_remainder_lipschitz_budget(
+        brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound, 1.0);
+    if (!(budget.M > 0.0 && std::isfinite(budget.M))) return 10;
+    const double beta_radial_proxy = std::max(brho.J1/2.0, brho.J2/2.0);
+    const double log_contraction_proxy = std::log(beta_radial_proxy) +
+        std::log(budget.M) - scale.log_Lambda_for_U_tolerance;
+    if (!(log_contraction_proxy < 0.0)) {
+        std::cerr << "finite B-rho remainder budget did not close\n";
+        return 11;
+    }
+
     std::cout << "Appendix B ordered scale: logLambda(Ucorr<=0.05)="
               << scale.log_Lambda_for_U_tolerance
               << ", log(Lambda/P_*^2)=" << scale.log_Lambda_over_Pstar2
-              << ", eta(max|Z*|)=" << scale.eta_at_max << '\n';
+              << ", eta(max|Z*|)=" << scale.eta_at_max
+              << ", B-rho M=" << budget.M
+              << ", log contraction proxy=" << log_contraction_proxy << '\n';
 
     return 0;
 }
