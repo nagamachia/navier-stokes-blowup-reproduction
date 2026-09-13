@@ -62,21 +62,34 @@
 - 時間刻み
 - CFL 数
 
-現在は FFTW 版実行系と自動可視化が整っており、Taylor–Green 基準計算の自動生成を行っている。
+現在は FFTW 版実行系と自動可視化が整っており、Taylor–Green 基準計算の自動生成を行っている。論文構成そのものの小規模回帰を先に進めるため、大規模 DNS はまだ主作業にしない。
 
 ## Step 4.5 — 論文構成の数値部品
 
-大規模 DNS の前に、論文の構成そのものを小さく検証する。
+大規模 DNS の前に、論文の構成そのものを小さく検証する。詳細な実装境界は `docs/progress.md` を正とする。
 
 順序:
 
 1. 式 (3.2)/(4.1) の類似座標 `q, eta, X` — **実装済み**
 2. Lemma 4.1, 式 (4.2) の微分作用素 `T_b`, `Z_b` — **実装済み・有限差分照合あり**
-3. 式 (4.6)–(4.7) の `A_X`, `V0`, `Pi` — 次の対象
-4. 軸上正則性 (4.4)–(4.5)
-5. active annulus の leading stress
-6. Sections 6–7 の oscillatory pulse と平均 stress
-7. 残差改善と最終 forcing
+3. 式 (4.6)–(4.7) の `A_X`, `V0`, `Pi` — **実装済み**
+4. 軸上正則性 (4.4)–(4.5) — **実装済み**
+5. 式 (4.8)–(4.11) の leading stress — **実装済み**
+6. 式 (4.15) と Appendix A.1 の moment correction primitives — **実装済み**
+7. Appendix A.2–A.3 の staged outer profile / finite-dimensional closure — **実装・CI回帰済み**
+8. Appendix A.4 / Lemma A.5 pressure datum (A.21)–(A.23) — **実装・CI回帰済み**
+9. Appendix A.6 / Lemma A.6 exact heat factor (A.32)–(A.39) — **実装・CI回帰済み**
+10. Proposition A.7 second reserved patch の `Cp,S,I` 3-moment compensation core — **実装・CI回帰済み**
+11. Proposition A.7 の full schedule coupling — **次の対象**
+    - terminal heat replacement の実スケール discrepancy を積分
+    - second reserved patch の3係数へ接続
+    - replacement + compensation 後に global `Cp,S,I` と axis pressure datum が復元されることを end-to-end 回帰
+12. Appendix B analytic axis profile と moment matching
+13. Appendix C admissible stress cone realization
+14. Sections 6–7 の oscillatory pulse と平均 stress
+15. residual improvement と final forcing
+
+A.9 の4つの reserved intervals は用途を混同しない。現在使用を開始したのは heat compensation 用の **second reserved patch** だけで、他は後段の construction 用に保持する。
 
 ## Step 5 — 動的リスケーリング
 
@@ -91,8 +104,10 @@
 途中成果も GitHub 上で追跡可能にする。
 
 - CSV: `results/reference/`
-- 可視化 SVG: `results/figures/`
-- 自動レポート: `reports/latest.md`
+- 可視化 SVG/GIF: `results/figures/`
+- 自動レポート: `reports/`
+
+Appendix A.6/A.7 の軽量診断は `results/reference/appendix_a6_a7_heat.csv` に保存し、heat ODE residual、3×3 compensation Jacobian、moment recovery error を追跡する。
 
 main 更新時に GitHub Actions が軽量な基準計算を実行し、結果を自動コミットする。
 
