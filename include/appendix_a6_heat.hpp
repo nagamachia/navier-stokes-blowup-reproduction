@@ -15,28 +15,36 @@ inline double appendix_a6_rising_factorial(double b, int m) {
 }
 
 inline double appendix_a6_heat_factor_derivative(double Z, double h, int m,
-                                                  int panels = 8192,
+                                                  int panels = 4096,
                                                   double vmax = 48.0) {
     if (!(Z >= 0.0)) throw std::invalid_argument("A.32 requires Z >= 0");
     if (!(h > 0.0 && h < 0.5)) throw std::invalid_argument("A.6 requires 0 < h < 1/2");
     if (m < 0) throw std::invalid_argument("derivative order must be nonnegative");
     if (panels < 2) panels = 2;
     if (panels % 2) ++panels;
+
     const double prefactor = ((m % 2) ? -1.0 : 1.0) *
         appendix_a6_rising_factorial(h, m) / std::tgamma(1.0 + h);
-    const double dv = vmax / static_cast<double>(panels);
-    auto integrand = [&](double v) {
-        if (v == 0.0) return 0.0;
+
+    // v=u^8 removes the weak v^h endpoint singularity before Simpson quadrature.
+    constexpr double power = 8.0;
+    const double umax = std::pow(vmax, 1.0 / power);
+    const double du = umax / static_cast<double>(panels);
+    auto integrand = [&](double u) {
+        if (u == 0.0) return 0.0;
+        const double v = std::pow(u, power);
+        const double jac = power * std::pow(u, power - 1.0);
         return std::exp(-v) * std::pow(v, h + static_cast<double>(m)) *
-               std::pow(1.0 + Z * v, -h - static_cast<double>(m));
+               std::pow(1.0 + Z * v, -h - static_cast<double>(m)) * jac;
     };
+
     double sum = 0.0;
     for (int i = 0; i <= panels; ++i) {
-        const double v = dv * static_cast<double>(i);
+        const double u = du * static_cast<double>(i);
         const double w = (i == 0 || i == panels) ? 1.0 : (i % 2 ? 4.0 : 2.0);
-        sum += w * integrand(v);
+        sum += w * integrand(u);
     }
-    return prefactor * sum * dv / 3.0;
+    return prefactor * sum * du / 3.0;
 }
 
 inline double appendix_a6_heat_factor(double Z, double h) {
