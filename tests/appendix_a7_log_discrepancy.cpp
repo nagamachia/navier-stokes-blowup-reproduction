@@ -31,5 +31,18 @@ int main() {
         std::cerr << "ordered A.7 compensation target should be below double range\n";
         return 4;
     }
+
+    const auto err = nsblowup::appendix_a7_leading_heat_error_audit(p, 0.4);
+    if (!(std::isfinite(err.log_relative_bound_CpS) &&
+          std::isfinite(err.log_relative_bound_I))) {
+        std::cerr << "non-finite A.7 leading heat error bound\n";
+        return 5;
+    }
+    if (!(err.log_relative_bound_CpS < -1.0e6 &&
+          err.log_relative_bound_I < -1.0e6)) {
+        std::cerr << "A.7 leading heat expansion is not sufficiently accurate in ordered regime\n";
+        return 6;
+    }
+
     return 0;
 }
