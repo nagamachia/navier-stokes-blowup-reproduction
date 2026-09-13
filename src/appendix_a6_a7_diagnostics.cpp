@@ -20,8 +20,9 @@ int main(int argc, char** argv) {
 
     os << "eta,heat_ratio_x100,heat_ode_residual,jacobian_det_scaled,"
           "recovery_error_inf,c0,c1,c2,ordered_target_log_cp,"
-          "ordered_target_log_s,ordered_target_log_i,"
-          "ordered_coeff_log_max,quadratic_to_linear_log_bound\n";
+          "ordered_target_log_s,ordered_target_log_i,target_log_spread,"
+          "quadratic_to_dominant_log_ratio,quadratic_log_magnitude,"
+          "all_components_resolvable_in_double\n";
     os << std::setprecision(15);
 
     constexpr double h = 0.08;
@@ -55,19 +56,18 @@ int main(int argc, char** argv) {
             err = std::max(err, std::abs(recovered[i] - target[i]));
 
         const auto log_target = appendix_a7_leading_heat_log_discrepancy(ordered, eta);
-        const auto log_solution = appendix_a7_solve_ordered_heat_compensation(
+        const auto audit = appendix_a7_audit_ordered_heat_compensation(
             ordered, eta, 20.0, 0.05, 1024);
-        double coeff_log_max = -INFINITY;
-        for (const auto& c : log_solution.coefficients)
-            if (c.sign != 0) coeff_log_max = std::max(coeff_log_max, c.log_abs);
 
         os << eta << ',' << heat_ratio << ',' << ode << ',' << det << ','
            << err << ',' << solved[0] << ',' << solved[1] << ',' << solved[2] << ','
            << log_target.patch_target_Cp.log_abs << ','
            << log_target.patch_target_S.log_abs << ','
            << log_target.patch_target_I.log_abs << ','
-           << coeff_log_max << ','
-           << log_solution.quadratic_to_linear_log_bound << '\n';
+           << audit.target_log_spread << ','
+           << audit.quadratic_to_dominant_log_ratio << ','
+           << audit.quadratic_log_magnitude << ','
+           << (audit.all_components_resolvable_in_double ? 1 : 0) << '\n';
     }
 
     std::cout << "wrote Appendix A.6/A.7 diagnostics to " << out << "\n";
