@@ -104,6 +104,10 @@ add_executable(test_appendix_a6_heat tests/appendix_a6_heat.cpp)
 target_include_directories(test_appendix_a6_heat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a6_heat)
 
+add_executable(test_appendix_a7_heat_compensation tests/appendix_a7_heat_compensation.cpp)
+target_include_directories(test_appendix_a7_heat_compensation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_appendix_a7_heat_compensation)
+
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
 
@@ -129,6 +133,7 @@ add_test(NAME appendix_a3_closure_regression COMMAND test_appendix_a3_closure)
 add_test(NAME appendix_a3_global_regression COMMAND test_appendix_a3_global)
 add_test(NAME appendix_a4_pressure_regression COMMAND test_appendix_a4_pressure)
 add_test(NAME appendix_a6_heat_regression COMMAND test_appendix_a6_heat)
+add_test(NAME appendix_a7_heat_compensation_regression COMMAND test_appendix_a7_heat_compensation)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
