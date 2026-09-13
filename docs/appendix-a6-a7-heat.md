@@ -68,9 +68,9 @@ A.9 の **second reserved patch**（heat compensation 用、log-width 5）を no
 
 となり、相異なる power weight と分離 support により Lemma A.1 の可逆性機構を数値確認できる。
 
-係数は既存の Lemma A.2 実装 `solve_small_quadratic_moment_system()` を用いて zero-start branch から解く。回帰では `eta` sweep に対して normalized Jacobian の非退化、既知の小係数から生成した3 discrepancy の exact recovery、`f(eta)` に由来する `eta -> -eta` 対称性を確認する。
+moderate な normalized regime では、既存の Lemma A.2 実装 `solve_small_quadratic_moment_system()` を用いて3 discrepancy の exact numerical recovery を回帰している。
 
-## 4. full schedule coupling と log-space 表現
+## 4. full schedule coupling と log-space 階層
 
 A.2/A.3 の radial schedule から、second reserved patch と terminal heat tail の自然スケールを `include/appendix_a7_schedule_scales.hpp` で抽出する。ordered regime では両者が指数的に離れるため、`X_patch/X_tail` や `e_patch/e_tail` を通常の `double` として直接生成せず、すべて `log X`, `log e` で追跡する。
 
@@ -78,13 +78,20 @@ A.2/A.3 の radial schedule から、second reserved patch と terminal heat tai
 
 この underflow は「補正が不要」という意味ではない。`include/appendix_a7_log_discrepancy.hpp` では (A.38) の leading expansion を使い、heat discrepancy を符号付き `log|Delta|` として保持する。cutoff 後の無限 tail は解析積分しており、小さい `h` でも有限窓打ち切り誤差を入れない。
 
-さらに `include/appendix_a7_log_compensation.hpp` では、3つの target の最大 log magnitude を共通スケールとして取り出し、scaled Jacobian system を解く。係数そのものは符号付き log 表現で保持する。quadratic remainder は一次項よりさらに共通スケール `exp(L)` を1個余分に持つため、ordered regime では exact quadratic branch と linearized branch の差が表現限界よりはるかに小さいことを log bound で監査する。
+さらに重要なのは、ordered regime では `Cp,S,I` の patch target 同士にも 10^6 オーダーの log-scale 差が生じることである。最大の target を O(1) に正規化すると、最小の target は倍精度では消える。また、最大 target に対する quadratic term は十分小さい一方で、その quadratic term 自体が最小 target より大きくなり得る。このため、通常の倍精度3×3 solve を「full ordered-regime exact compensation」と呼ぶことはできない。
 
-`Cp` は axis pressure datum の increment そのものなので、同じ3-moment solve の第1成分を通じて pressure datum restoration も同じ scaled representation で追跡する。
+`include/appendix_a7_log_compensation.hpp` はこの事実を隠さず、**scale audit** として実装する。最大 target に対する dominant linear direction、target の log spread、quadratic-to-dominant ratio、quadratic absolute log magnitude を計算し、全3成分を倍精度で同時解像可能かを明示する。ordered 基準では `all_components_resolvable_in_double=false` になる。
+
+したがって現時点の数値的主張は次の2段階に分ける。
+
+1. moderate normalized regime: exact degree-two map と3-moment compensation を end-to-end で数値回帰できる。
+2. paper の ordered regime: full schedule の指数的階層と dominant correction / nonlinear scale を log-space で監査できるが、全3 target の componentwise exact recovery を倍精度だけで直接計算したとは主張しない。
+
+`Cp` は axis pressure datum の increment そのものなので、pressure restoration も同じ精度階層の制約を受ける。
 
 ## 5. 現在の実装境界
 
-実装・CI回帰済み:
+実装・回帰済み:
 
 - (A.32) heat factor integral
 - (A.34) derivative integral
@@ -93,17 +100,17 @@ A.2/A.3 の radial schedule から、second reserved patch と terminal heat tai
 - (A.38) large-X expansion regression
 - (A.39) terminal heat replacement ratio
 - Proposition A.7 の second reserved patch 上の 3-bump exact quadratic moment map
-- Lemma A.1 / A.2 を用いた `Cp,S,I` compensation solver
+- moderate normalized regime の `Cp,S,I` exact compensation solver
 - terminal heat replacement の normalized discrepancy と second patch solver の runtime bridge
 - A.2/A.3 full schedule から second patch / terminal tail の相対自然スケールを log-space で抽出
 - ordered regime の heat discrepancy を signed-log で評価
-- underflow-scale target を scaled Jacobian で解き、補正係数を signed-log で保持
-- quadratic-to-linear remainder bound と pressure (`Cp`) target の整合性回帰
+- ordered regime の target log hierarchy、dominant linear correction、quadratic scale の監査
+- 診断CSVへの ordered target logs / scale spread / nonlinear bound の出力
 
 未完了:
 
-- exact heat factor `H` による full discrepancy と large-X leading signed-log 式の誤差を、scaled asymptotic bound として end-to-end で閉じること
-- replacement + compensation 後の `Cp,S,I` および axis pressure datum の recovery を、full schedule 全体の1つの結果型としてまとめること
-- その end-to-end 診断を `results/reference/appendix_a6_a7_heat.csv` とレポートに固定し、Proposition A.7 を完了扱いにすること
+- exact heat factor `H` による full discrepancy と large-X leading signed-log 式の誤差を scaled asymptotic bound として閉じること
+- ordered regime の階層補正について、解析的な contraction / hierarchy argument と数値監査を接続し、`Cp,S,I` と axis pressure datum restoration をどこまで「再現済み」と判定できるかを明文化すること
+- その上で Proposition A.7 を完了扱いにすること
 
-したがって Proposition A.7 の full schedule coupling は大部分まで接続済みだが、まだ完了扱いにはしない。A.9 の残り3つの reserved intervals は引き続き未変更のまま保持する。
+したがって Proposition A.7 の full schedule coupling は進行中であり、まだ完了扱いにはしない。A.9 の残り3つの reserved intervals は引き続き未変更のまま保持する。
