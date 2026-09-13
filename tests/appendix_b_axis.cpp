@@ -1,4 +1,4 @@
-#include "appendix_b_axis.hpp"
+#include "appendix_b_axis_asymptotic.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -52,6 +52,27 @@ int main() {
         }
     }
     if (!(f0min > 0.265)) return 8;
+
+    const auto endpoint = nsblowup::appendix_b_endpoint_asymptotic_audit(
+        p, sep, 25.0, 0.05, 121);
+    if (!(endpoint.min_phi0 > 0.265)) {
+        std::cerr << "B.3 comparison profile lost positivity\n";
+        return 9;
+    }
+    if (!endpoint.azimuthal_branch_certified ||
+        !(endpoint.min_azimuthal_p1_on_chi_branch > 2.36)) {
+        std::cerr << "B.19 azimuthal endpoint branch failed\n";
+        return 10;
+    }
+    if (!endpoint.axial_branch_separated ||
+        !(endpoint.min_abs_normalized_ns_on_axial_branch > sep.normalized_delta_star)) {
+        std::cerr << "B.19 axial endpoint branch failed separation\n";
+        return 11;
+    }
+    if (!std::isfinite(endpoint.max_log_required_C_normalized)) {
+        std::cerr << "B.19 normalized amplitude threshold is not finite\n";
+        return 12;
+    }
 
     return 0;
 }
