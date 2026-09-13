@@ -17,7 +17,7 @@ int main() {
 
     const double h = 0.08;
     const double H0 = appendix_a6_heat_factor(0.0, h);
-    if (!close(H0, 1.0, 3e-5, 3e-5)) {
+    if (!close(H0, 1.0, 1e-10, 1e-10)) {
         std::cerr << "A.32 normalization failed: H(0)=" << H0 << "\n";
         return 1;
     }
@@ -25,7 +25,7 @@ int main() {
     for (int m = 1; m <= 2; ++m) {
         const double numeric = appendix_a6_heat_factor_derivative(0.0, h, m);
         const double exact = appendix_a6_heat_factor_at_zero_derivative(h, m);
-        if (!close(numeric, exact, 8e-5, 8e-5)) {
+        if (!close(numeric, exact, 1e-10, 1e-10)) {
             std::cerr << "A.35 derivative mismatch m=" << m
                       << " numeric=" << numeric << " exact=" << exact << "\n";
             return 1;
@@ -40,13 +40,13 @@ int main() {
             std::cerr << "A.6 positivity/monotonicity failed at Z=" << Z << "\n";
             return 1;
         }
-        if (std::abs(residual) > 2e-4) {
+        if (std::abs(residual) > 2e-9) {
             std::cerr << "A.37 ODE residual too large at Z=" << Z
                       << ": " << residual << "\n";
             return 1;
         }
         const double log_slope = -Z * Hp / H;
-        if (!(log_slope >= 0.0 && log_slope < h + 2e-4)) {
+        if (!(log_slope >= 0.0 && log_slope < h + 1e-10)) {
             std::cerr << "A.6 logarithmic slope bound failed at Z=" << Z << "\n";
             return 1;
         }
@@ -54,14 +54,21 @@ int main() {
 
     const double eta = 0.4;
     const double d = 1.0 - eta * eta;
+    double previous_scaled = -1.0;
     for (double X : {80.0, 160.0, 320.0}) {
         const double ratio = appendix_a6_heat_ratio(X, eta, h);
         const double first = 1.0 - 2.0 * h * (1.0 + h) * d / X;
-        if (!close(ratio, first, 8e-6, 8e-6)) {
-            std::cerr << "A.38 expansion mismatch at X=" << X
-                      << ": ratio=" << ratio << " first=" << first << "\n";
+        const double scaled = std::abs(ratio - first) * X * X;
+        if (!(scaled < 0.4)) {
+            std::cerr << "A.38 O(X^-2) remainder too large at X=" << X
+                      << ": scaled=" << scaled << "\n";
             return 1;
         }
+        if (previous_scaled > 0.0 && scaled > 1.08 * previous_scaled) {
+            std::cerr << "A.38 scaled remainder is not asymptotically stable\n";
+            return 1;
+        }
+        previous_scaled = scaled;
     }
 
     const double X = 50.0;
@@ -77,7 +84,7 @@ int main() {
         return 1;
     }
 
-    if (!close(appendix_a6_heat_ratio(20.0, 1.0, h), H0, 1e-10, 1e-10)) {
+    if (!close(appendix_a6_heat_ratio(20.0, 1.0, h), H0, 1e-12, 1e-12)) {
         std::cerr << "eta endpoint regularity failed\n";
         return 1;
     }
