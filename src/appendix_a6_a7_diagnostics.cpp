@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
           "recovery_error_inf,c0,c1,c2,ordered_target_log_cp,"
           "ordered_target_log_s,ordered_target_log_i,target_log_spread,"
           "quadratic_to_dominant_log_ratio,quadratic_log_magnitude,"
+          "leading_error_log_bound_cps,leading_error_log_bound_i,"
           "all_components_resolvable_in_double\n";
     os << std::setprecision(15);
 
@@ -56,18 +57,21 @@ int main(int argc, char** argv) {
             err = std::max(err, std::abs(recovered[i] - target[i]));
 
         const auto log_target = appendix_a7_leading_heat_log_discrepancy(ordered, eta);
-        const auto audit = appendix_a7_audit_ordered_heat_compensation(
+        const auto hierarchy = appendix_a7_audit_ordered_heat_compensation(
             ordered, eta, 20.0, 0.05, 1024);
+        const auto asymptotic = appendix_a7_leading_heat_error_audit(ordered, eta);
 
         os << eta << ',' << heat_ratio << ',' << ode << ',' << det << ','
            << err << ',' << solved[0] << ',' << solved[1] << ',' << solved[2] << ','
            << log_target.patch_target_Cp.log_abs << ','
            << log_target.patch_target_S.log_abs << ','
            << log_target.patch_target_I.log_abs << ','
-           << audit.target_log_spread << ','
-           << audit.quadratic_to_dominant_log_ratio << ','
-           << audit.quadratic_log_magnitude << ','
-           << (audit.all_components_resolvable_in_double ? 1 : 0) << '\n';
+           << hierarchy.target_log_spread << ','
+           << hierarchy.quadratic_to_dominant_log_ratio << ','
+           << hierarchy.quadratic_log_magnitude << ','
+           << asymptotic.log_relative_bound_CpS << ','
+           << asymptotic.log_relative_bound_I << ','
+           << (hierarchy.all_components_resolvable_in_double ? 1 : 0) << '\n';
     }
 
     std::cout << "wrote Appendix A.6/A.7 diagnostics to " << out << "\n";
