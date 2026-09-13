@@ -38,6 +38,10 @@ add_executable(appendix_a4_pressure_diagnostics src/appendix_a4_pressure_diagnos
 target_include_directories(appendix_a4_pressure_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a4_pressure_diagnostics)
 
+add_executable(appendix_a6_a7_diagnostics src/appendix_a6_a7_diagnostics.cpp)
+target_include_directories(appendix_a6_a7_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(appendix_a6_a7_diagnostics)
+
 add_executable(fftw_taylor_green src/fftw_taylor_green.cpp)
 target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
