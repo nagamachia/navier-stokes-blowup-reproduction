@@ -76,14 +76,14 @@ struct AppendixBPropositionB2Certificate {
 inline AppendixBPropositionB2Certificate appendix_b_proposition_b2_certificate(
     const AppendixBRhoOperatorAudit& op,const AppendixBMultiplierNorms& m,
     double h,double Lambda,double u0_norm_bound,double g_bound=1.0) {
-    if(!op.infinite_eta_certified || !op.infinite_alpha_certified)
+    if(!op.infinite_eta_certified || !op.infinite_radial_certified)
         throw std::invalid_argument("Proposition B.2 certificate requires infinite-alpha-beta operators");
     const auto ia=appendix_b_full_inverse_all_beta_audit(op.rho,m.chi);
-    const double Phi0=ia.full_inverse_bound; // ||(1+T)^-1 1|| <= inverse norm.
+    const double Phi0=ia.full_inverse_bound;
     double r=1.0;
     AppendixBFixedMapSourceBudget src{};
     AppendixBFixedMapBudget lip{};
-    for(int it=0;it<12;++it){
+    for(int it=0;it<16;++it){
         const double Pb=Phi0+r;
         const double ub=u0_norm_bound+r;
         lip=appendix_b_fixed_map_lipschitz_budget(op,m,h,Lambda,Pb,ub,g_bound);
@@ -101,7 +101,7 @@ inline AppendixBPropositionB2Certificate appendix_b_proposition_b2_certificate(
     const double lhs=src.source_norm+lip.contraction_bound*r;
     const double margin=r-lhs;
     const bool invball=std::isfinite(lhs) && lhs<=r && lip.contraction_bound<1.0;
-    const bool full=op.infinite_eta_certified && op.infinite_alpha_certified &&
+    const bool full=op.infinite_eta_certified && op.infinite_radial_certified &&
         lip.inverse_certified && lip.contraction_certified && invball;
     return {Lambda,Phi0,u0_norm_bound,r,Pb,ub,src,lip,lhs,margin,
         true,lip.inverse_certified,lip.contraction_certified,invball,full};
