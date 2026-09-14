@@ -29,10 +29,11 @@ int main(int argc,char**argv){
           "u_Hstar_detau,u_u_detau,u_pressure_p,u_pressure_peta,u_pressure_DXp,"
           "M_phi_map,M_u_map,contraction_bound,inverse_certified,contraction_certified\n";
 
+    const double factors[]={1.0,10.0,100.0,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12};
     for(double rho:{1e-5,2e-5,5e-5,1e-4,2e-4}){
         const auto op=appendix_b_brho_operator_audit(18,6,rho);
         const auto mult=appendix_b_sample_multiplier_norms(h,0.05,sep.sigma_star,sep.eta0,rho,6,2401);
-        for(double factor:{1.0,10.0,100.0,1000.0,10000.0}){
+        for(double factor:factors){
             const double Lambda=Lambda0*factor;
             const auto b=appendix_b_fixed_map_lipschitz_budget(
                 op,mult.norms,h,Lambda,2.0,1.1*u0,1.0);
