@@ -1,6 +1,7 @@
 #pragma once
 
 #include "appendix_b_brho.hpp"
+#include "appendix_b_full_inverse.hpp"
 #include "appendix_b_remainder_budget.hpp"
 
 #include <algorithm>
@@ -11,7 +12,11 @@ namespace nsblowup {
 
 struct AppendixBFixedMapBudget {
     double T_bound{}; // crude one-step bound, diagnostic only
-    double inverse_one_plus_T_bound{}; // degree-raising finite Neumann bound
+    double inverse_one_plus_T_bound{}; // finite prefix + analytic factorial tail
+    double inverse_finite_prefix_bound{};
+    double inverse_analytic_tail_bound{};
+    double inverse_factorial_K{};
+    double inverse_envelope_ratio{};
 
     double phi_Wstar_Phi{};
     double phi_h_background_Phi{};
@@ -43,45 +48,6 @@ struct AppendixBFixedMapBudget {
     bool contraction_certified{};
 };
 
-// T=(1/2)J2(chi .) preserves eta structure but raises radial degree by one.
-// For a field supported at one radial degree alpha, this computes the direct
-// B.4 norm ratio for that single T step, including all eta Leibniz terms.
-inline double appendix_b_T_degree_step_bound(
-    std::size_t alpha,std::size_t nb,double rho,double chi_norm) {
-    double C=0.0;
-    for(std::size_t b=0;b<=nb;++b){
-        double s=0.0;
-        for(std::size_t r=0;r<=b;++r){
-            s += appendix_b_brho_binomial(b,r)
-                * appendix_b_brho_weight(0,r,rho)
-                * appendix_b_brho_weight(alpha,b-r,rho);
-        }
-        const double den=2.0*static_cast<double>(alpha+1)*static_cast<double>(alpha+2)
-            * appendix_b_brho_weight(alpha+1,b,rho);
-        C=std::max(C,chi_norm*s/den);
-    }
-    return C;
-}
-
-// Finite-truncation counterpart of the manuscript's factorial degree-raising
-// Neumann estimate.  No assumption ||T||<1 is made.  Since T raises radial
-// degree, coefficient alpha of sum_k (-T)^k receives only k<=alpha terms.
-inline double appendix_b_inverse_one_plus_T_degree_bound(
-    std::size_t na,std::size_t nb,double rho,double chi_norm) {
-    double C=1.0;
-    for(std::size_t out=0;out<=na;++out){
-        double sum=1.0;
-        double product=1.0;
-        for(std::size_t k=1;k<=out;++k){
-            const std::size_t start=out-k;
-            product*=appendix_b_T_degree_step_bound(start,nb,rho,chi_norm);
-            sum+=product;
-        }
-        C=std::max(C,sum);
-    }
-    return C;
-}
-
 inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     const AppendixBRhoOperatorAudit& op,
     const AppendixBMultiplierNorms& m,
@@ -103,11 +69,12 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     const double AXdeta2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,true,false,false,true);
     const double AXdx1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true,false,true);
 
-    // The crude bound is retained to show why a geometric 1/(1-||T||)
-    // argument may fail.  The inverse itself uses radial degree raising.
+    // The crude one-step norm can be >1.  The inverse instead uses an exact
+    // finite Neumann prefix and the analytic factorial radial tail.
     const double t=0.5*op.product_J2*m.chi;
-    const double inv=appendix_b_inverse_one_plus_T_degree_bound(na,nb,rho,m.chi);
-    const bool inv_ok=std::isfinite(inv) && inv>0.0;
+    const auto inv_audit=appendix_b_full_inverse_audit(na,nb,rho,m.chi,64,256);
+    const double inv=inv_audit.full_inverse_bound;
+    const bool inv_ok=inv_audit.tail_certified && std::isfinite(inv) && inv>0.0;
 
     const double outer1=inv_ok ? inv*C*m.invL/(2.0*Lambda) : INFINITY;
     const double outer2=C*m.invL/(2.0*Lambda);
@@ -115,6 +82,10 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     AppendixBFixedMapBudget out;
     out.T_bound=t;
     out.inverse_one_plus_T_bound=inv;
+    out.inverse_finite_prefix_bound=inv_audit.finite_prefix_bound;
+    out.inverse_analytic_tail_bound=inv_audit.analytic_tail_bound;
+    out.inverse_factorial_K=inv_audit.factorial_envelope_K;
+    out.inverse_envelope_ratio=inv_audit.max_envelope_ratio;
     out.inverse_certified=inv_ok;
 
     const double pair_uPhi=Phi_bound+u_bound;
