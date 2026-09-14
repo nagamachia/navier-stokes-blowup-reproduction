@@ -17,12 +17,14 @@ struct AppendixBFullInverseAudit {
     double chi_norm{};
     double factorial_envelope_K{};
     double max_envelope_ratio{};
+    double max_unscanned_start_fraction{};
     double finite_prefix_bound{};
     double analytic_tail_bound{};
     double full_inverse_bound{};
     double first_omitted_term_bound{};
     double first_tail_ratio{};
     bool envelope_verified{};
+    bool finite_prefix_certified{};
     bool tail_certified{};
 };
 
@@ -47,30 +49,29 @@ inline double appendix_b_full_T_degree_step_bound(
     return C;
 }
 
-// B.4 weight algebra gives the radial factorial envelope
-//   ||T F_alpha|| <= K/((alpha+1)(alpha+2)) ||F_alpha||,
-// with K=40 ||chi||_{B_rho}.  Consequently
-//   ||T^k|| <= K^k/(k!(k+1)!)
-// for the worst starting degree alpha=0.  This is the analytic radial tail
-// mechanism used in the manuscript; unlike a geometric estimate it does not
-// require ||T||<1.
+// The B.4 algebra yields the radial envelope
+//   step_alpha <= K/((alpha+1)(alpha+2)), K=40 ||chi||_{B_rho}.
+// Hence, for a start degree s,
+//   ||T^k||_s <= product_{j=0}^{k-1} K/((s+j+1)(s+j+2)).
+// At s=0 this is K^k/(k!(k+1)!).
 inline double appendix_b_T_factorial_envelope_K(double chi_norm) {
     if (!(chi_norm>=0.0)) throw std::invalid_argument("chi norm must be nonnegative");
     return 40.0*chi_norm;
 }
 
-inline double appendix_b_T_factorial_term(double K,std::size_t k) {
+inline double appendix_b_T_power_start_envelope(double K,std::size_t start,std::size_t k) {
     if (!(K>=0.0)) throw std::invalid_argument("factorial envelope K must be nonnegative");
-    double term=1.0;
+    double p=1.0;
     for(std::size_t j=0;j<k;++j)
-        term*=K/(static_cast<double>(j+1)*static_cast<double>(j+2));
-    return term;
+        p*=K/(static_cast<double>(start+j+1)*static_cast<double>(start+j+2));
+    return p;
 }
 
-// Exact finite prefix, using the B.4 step constants.  We scan starting radial
-// degrees because an operator norm may begin at any alpha.  The degree raising
-// makes this a finite calculation for each fixed k.
-inline double appendix_b_T_power_finite_bound(
+inline double appendix_b_T_factorial_term(double K,std::size_t k) {
+    return appendix_b_T_power_start_envelope(K,0,k);
+}
+
+inline double appendix_b_T_power_scanned_bound(
     std::size_t k,std::size_t start_scan,std::size_t nb,double rho,double chi_norm) {
     if(k==0) return 1.0;
     double best=0.0;
@@ -90,13 +91,10 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
         throw std::invalid_argument("invalid Appendix B full inverse audit parameters");
 
     const double K=appendix_b_T_factorial_envelope_K(chi_norm);
-    double finite=0.0;
-    for(std::size_t k=0;k<=finite_k;++k)
-        finite+=appendix_b_T_power_finite_bound(k,start_scan,nb,rho,chi_norm);
 
-    // Verify the algebraic K/((alpha+1)(alpha+2)) envelope over a long finite
-    // window as a regression guard.  The analytic bound itself is the formula
-    // above; this scan detects implementation drift in the B.4 weights.
+    // Regression-check the exact B.4 implementation against the analytic
+    // envelope.  The all-alpha certification comes from the algebraic formula;
+    // this finite scan is a guard against implementation drift.
     double max_ratio=0.0;
     for(std::size_t a=0;a<=envelope_scan;++a){
         const double step=appendix_b_full_T_degree_step_bound(a,nb,rho,chi_norm);
@@ -105,17 +103,34 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
     }
     const bool envelope_ok=max_ratio<=1.0+1e-12;
 
+    // Hybrid finite prefix: exact B.4 steps for starts s<=start_scan, plus an
+    // analytic bound for every omitted start s>=start_scan+1.  Because the
+    // envelope denominator is increasing in s, its maximum on the omitted
+    // starts is attained at s=start_scan+1.
+    double finite=0.0;
+    double max_unscanned_fraction=0.0;
+    bool prefix_ok=envelope_ok;
+    for(std::size_t k=0;k<=finite_k;++k){
+        const double scanned=appendix_b_T_power_scanned_bound(k,start_scan,nb,rho,chi_norm);
+        const double unscanned=appendix_b_T_power_start_envelope(K,start_scan+1,k);
+        const double global=std::max(scanned,unscanned);
+        finite+=global;
+        if(global>0.0) max_unscanned_fraction=std::max(max_unscanned_fraction,unscanned/global);
+        prefix_ok=prefix_ok && std::isfinite(global);
+    }
+
+    // Analytic Neumann tail in k.  The worst starting radial degree is s=0.
+    // Consecutive factorial terms have ratio K/((k+1)(k+2)), decreasing in k.
     const std::size_t k0=finite_k+1;
     const double first=appendix_b_T_factorial_term(K,k0);
     const double r0=K/(static_cast<double>(k0+1)*static_cast<double>(k0+2));
-    // Ratios decrease monotonically with k.  Once r0<1, the omitted factorial
-    // series is dominated by a geometric series with first term `first`.
-    const bool tail_ok=envelope_ok && r0<1.0;
+    const bool tail_ok=prefix_ok && r0<1.0;
     const double tail=tail_ok ? first/(1.0-r0) : std::numeric_limits<double>::infinity();
     const double full=finite+tail;
 
-    return {finite_k,nb,rho,chi_norm,K,max_ratio,finite,tail,full,first,r0,
-        envelope_ok,tail_ok && std::isfinite(full)};
+    return {finite_k,nb,rho,chi_norm,K,max_ratio,max_unscanned_fraction,
+        finite,tail,full,first,r0,envelope_ok,prefix_ok,
+        tail_ok && std::isfinite(full)};
 }
 
 } // namespace nsblowup
