@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 
 namespace nsblowup {
@@ -13,6 +14,7 @@ namespace nsblowup {
 struct AppendixBFixedMapBudget {
     double T_bound{}; // crude one-step bound, diagnostic only
     double inverse_one_plus_T_bound{}; // finite prefix + analytic factorial tail
+    std::size_t inverse_finite_k{};
     double inverse_finite_prefix_bound{};
     double inverse_analytic_tail_bound{};
     double inverse_factorial_K{};
@@ -69,12 +71,17 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     const double AXdeta2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,true,false,false,true);
     const double AXdx1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true,false,true);
 
-    // The crude one-step norm can be >1. The inverse instead uses an exact
-    // finite Neumann prefix and the analytic factorial radial tail.  The
-    // implementation-regression scan stops at alpha=128 to stay well above
-    // the finite prefix while avoiding direct-double underflow of 20^{-alpha}.
+    // The all-beta analytic chi norm can be larger than the finite-jet norm.
+    // Extend the exact finite-k prefix until the first omitted factorial ratio
+    // is at most 1/2, then close the infinite remainder geometrically.
     const double t=0.5*op.product_J2*m.chi;
-    const auto inv_audit=appendix_b_full_inverse_audit(na,nb,rho,m.chi,64,128);
+    const double K=appendix_b_T_factorial_envelope_K(m.chi);
+    std::size_t finite_k=na;
+    while(K/(static_cast<double>(finite_k+2)*static_cast<double>(finite_k+3))>=0.5){
+        ++finite_k;
+        if(finite_k>160) throw std::runtime_error("Appendix B inverse prefix exceeds safe direct-double range");
+    }
+    const auto inv_audit=appendix_b_full_inverse_audit(finite_k,nb,rho,m.chi,64,128);
     const double inv=inv_audit.full_inverse_bound;
     const bool inv_ok=inv_audit.tail_certified && std::isfinite(inv) && inv>0.0;
 
@@ -84,6 +91,7 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     AppendixBFixedMapBudget out;
     out.T_bound=t;
     out.inverse_one_plus_T_bound=inv;
+    out.inverse_finite_k=finite_k;
     out.inverse_finite_prefix_bound=inv_audit.finite_prefix_bound;
     out.inverse_analytic_tail_bound=inv_audit.analytic_tail_bound;
     out.inverse_factorial_K=inv_audit.factorial_envelope_K;
@@ -92,7 +100,6 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
 
     const double pair_uPhi=Phi_bound+u_bound;
 
-    // ---- Phi map: (1+T)^-1 J2 R1 /(2 Lambda) ----
     out.phi_Wstar_Phi=outer1*op.product_J2*m.Wstar;
     out.phi_h_background_Phi=outer1*op.product_J2*h*m.one_minus_2etaUstar;
     out.phi_B_etaAX_u_Phi=outer1*(2.0*D/Lambda)*C*m.eta*AXprod2*pair_uPhi;
@@ -110,7 +117,6 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
         out.phi_zeta_u_Phi+out.phi_Wstar_DXPhi+out.phi_B_etaAX_u_DXPhi+
         out.phi_B_detaAX_u_DXPhi+out.phi_Hstar_detaPhi+out.phi_u_detaPhi;
 
-    // ---- u map: J1 R2 /(2 Lambda) ----
     out.u_linear=outer2*op.product_J1*m.linear_u;
     out.u_quadratic=outer2*(2.0*(0.5+h)/Lambda)*C*m.eta*op.product_J1*(2.0*u_bound);
     out.u_Wstar_DXu=outer2*op.DX_J1*m.Wstar;
