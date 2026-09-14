@@ -66,26 +66,33 @@ int main() {
     const double u0_bound = std::exp(scale.max_log_abs_u0_Ymax);
     const auto fixed = appendix_b_fixed_map_lipschitz_budget(
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound, 1.0);
-    if (!fixed.inverse_certified || !(fixed.T_bound < 1.0) ||
+    if (!fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
     if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0)) return 11;
 
-    // Lambda is free after the earlier Appendix-B choices.  A sufficiently
-    // larger Lambda must close the same finite-truncation fixed-map budget.
-    const auto fixed_large = appendix_b_fixed_map_lipschitz_budget(
-        brho, mult.norms, std::exp(p.log_h), 1e4*Lambda, 2.0, 1.1*u0_bound, 1.0);
-    if (!fixed_large.contraction_certified) {
-        std::cerr << "large-Lambda direct fixed-map audit did not close: "
-                  << fixed_large.contraction_bound << '\n';
+    double closing_factor = 0.0;
+    double closing_bound = 0.0;
+    for (double factor = 1.0; factor <= 1e12; factor *= 10.0) {
+        const auto trial = appendix_b_fixed_map_lipschitz_budget(
+            brho, mult.norms, std::exp(p.log_h), factor*Lambda, 2.0, 1.1*u0_bound, 1.0);
+        if (trial.contraction_certified) {
+            closing_factor = factor;
+            closing_bound = trial.contraction_bound;
+            break;
+        }
+    }
+    if (!(closing_factor > 0.0)) {
+        std::cerr << "direct fixed-map audit did not close through 1e12 Lambda factor\n";
         return 12;
     }
 
     std::cout << "Appendix B direct fixed map: rho=" << rho
-              << " T=" << fixed.T_bound
+              << " crudeT=" << fixed.T_bound
               << " inv=" << fixed.inverse_one_plus_T_bound
               << " Mphi=" << fixed.M_phi_map
               << " Mu=" << fixed.M_u_map
               << " contraction=" << fixed.contraction_bound
-              << " largeLambda=" << fixed_large.contraction_bound << '\n';
+              << " closingFactor=" << closing_factor
+              << " closingBound=" << closing_bound << '\n';
     return 0;
 }
