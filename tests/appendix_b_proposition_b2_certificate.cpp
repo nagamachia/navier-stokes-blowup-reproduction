@@ -19,17 +19,12 @@ int main(){
     const auto op=appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
     if(!op.infinite_eta_certified || !op.infinite_radial_certified) return 1;
 
-    // The center is now certified in the same analytic B-rho space.  Use an
-    // inner stadium matching the fixed-multiplier radius and a larger pressure
-    // stadium for the Cauchy derivative bound on Pi0_eta.
     const auto center=appendix_b_Z_over_L_analytic_audit(
         p,0.05,rho,4.0*rho,8.0*rho,4.1,20.0,0.05,0.02);
     if(!center.certified || !center.pressure.certified) return 5;
     const double u0=std::exp(center.log_u0_brho_Ymax);
     if(!(u0>0.0) || !std::isfinite(u0)) return 6;
 
-    // Cross-check: the new analytic center bound must dominate the former
-    // real-axis sampled leading-center scale.
     const double sampled_u0=std::exp(scale.max_log_abs_u0_Ymax);
     if(!(u0>=sampled_u0)) return 7;
 
@@ -40,12 +35,13 @@ int main(){
         if(!std::isfinite(Lambda)) break;
         const auto am=appendix_b_analytic_multiplier_norms(h,0.05,sep.sigma_star,rho,0.45,Lambda);
         const auto cert=appendix_b_proposition_b2_certificate(
-            op,am.norms,h,Lambda,u0,am.scalar_cauchy_factor);
+            op,am.norms,h,Lambda,u0,am.scalar_cauchy_factor,center.certified);
         if(cert.proposition_b2_certificate){ winner=cert; winner_factor=factor; break; }
     }
     if(!(winner_factor>0.0)) return 2;
     if(!winner.infinite_alpha_beta || !winner.inverse_certified ||
-       !winner.contraction_certified || !winner.invariant_ball_certified) return 3;
+       !winner.contraction_certified || !winner.invariant_ball_certified ||
+       !winner.analytic_center_certified) return 3;
     if(!(winner.lipschitz.contraction_bound<1.0) ||
        !(winner.invariant_lhs<=winner.ball_radius) ||
        !(winner.invariant_margin>=0.0) ||
