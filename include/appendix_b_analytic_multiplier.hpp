@@ -19,6 +19,8 @@ struct AppendixBAnalyticMultiplierAudit {
     double rho{};
     double outer_radius{};
     double nearest_chi_zeta_pole_distance{};
+    double min_H_minus_isigma{};
+    double min_H_plus_isigma{};
     double qmin_H2_plus_sigma2{};
     double scalar_cauchy_factor{};
     double log_C_for_g{};
@@ -37,16 +39,15 @@ inline double appendix_b_distance_to_real_segment(std::complex<double> z) {
 
 inline std::vector<std::complex<double>> appendix_b_cubic_roots(
     std::array<std::complex<double>,4> c) {
-    // c[0]+c[1]z+c[2]z^2+c[3]z^3, Durand-Kerner with residual check.
     if(std::abs(c[3])==0.0) throw std::invalid_argument("cubic leading coefficient is zero");
     for(auto&x:c) x/=c[3];
     const double R=1.0+std::max({std::abs(c[0]),std::abs(c[1]),std::abs(c[2])});
     const std::complex<double> seed(-0.5,std::sqrt(3.0)/2.0);
     std::vector<std::complex<double>> r={R*std::complex<double>(1,0),R*seed,R*seed*seed};
     auto P=[&](std::complex<double> z){return ((z+c[2])*z+c[1])*z+c[0];};
-    for(int it=0;it<200;++it){
+    for(int it=0;it<250;++it){
         double md=0.0;
-        auto old=r;
+        const auto old=r;
         for(int i=0;i<3;++i){
             std::complex<double> den(1,0);
             for(int j=0;j<3;++j) if(i!=j) den*=old[i]-old[j];
@@ -57,17 +58,17 @@ inline std::vector<std::complex<double>> appendix_b_cubic_roots(
         }
         if(md<1e-14) break;
     }
-    for(auto z:r) if(std::abs(P(z))>1e-9) throw std::runtime_error("Appendix B cubic root residual too large");
+    for(auto z:r) if(std::abs(P(z))>1e-9)
+        throw std::runtime_error("Appendix B cubic root residual too large");
     return r;
 }
 
 inline double appendix_b_cauchy_brho_factor(double rho,double R) {
     if(!(rho>0.0 && R>rho)) throw std::invalid_argument("Cauchy radius must exceed rho");
     const double q=rho/R;
-    double best=1.0, term=1.0;
-    // term=q^beta(beta+1)^2.  Ratio eventually drops below one monotonically.
-    for(std::size_t b=0;b<100000;++b){
-        if(b>0) term=std::pow(q,static_cast<double>(b))*std::pow(static_cast<double>(b+1),2.0);
+    double best=1.0;
+    for(std::size_t b=1;b<100000;++b){
+        const double term=std::pow(q,static_cast<double>(b))*std::pow(static_cast<double>(b+1),2.0);
         best=std::max(best,term);
         const double ratio=q*std::pow(static_cast<double>(b+2)/static_cast<double>(b+1),2.0);
         if(b>8 && ratio<1.0 && term<best*1e-15) break;
@@ -92,30 +93,33 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     const std::array<std::complex<double>,4> base={
         std::complex<double>(j0,0),std::complex<double>(4.5-h,0),
         std::complex<double>(-j0,0),std::complex<double>(-4.0,0)};
+    std::array<std::vector<std::complex<double>>,2> roots_by_sign;
     double pole_dist=std::numeric_limits<double>::infinity();
-    std::vector<std::complex<double>> poles;
-    for(double sgn:{-1.0,1.0}){
+    for(int si=0;si<2;++si){
+        const double sgn=si==0?-1.0:1.0;
         auto c=base;
-        // H(z)=sgn*i*sigma -> H(z)-sgn*i*sigma=0.
         c[0]-=std::complex<double>(0.0,sgn*sigma);
-        auto roots=appendix_b_cubic_roots(c);
-        for(auto z:roots){
-            poles.push_back(z);
+        roots_by_sign[si]=appendix_b_cubic_roots(c);
+        for(auto z:roots_by_sign[si])
             pole_dist=std::min(pole_dist,appendix_b_distance_to_real_segment(z));
-        }
     }
     if(!(pole_dist>0.0) || !std::isfinite(pole_dist))
         throw std::runtime_error("failed to separate chi/zeta poles from [-1,1]");
     const double R=radius_fraction*pole_dist;
     if(!(R>rho)) throw std::runtime_error("analytic neighborhood radius does not exceed rho");
 
-    // Q=H^2+sigma^2 has leading coefficient 16 and roots equal to the six poles above.
-    double qmin=16.0;
-    for(auto z:poles){
-        const double d=appendix_b_distance_to_real_segment(z)-R;
-        if(!(d>0.0)) throw std::runtime_error("complex neighborhood crosses a chi/zeta pole");
-        qmin*=d;
+    // H(z) +/- i sigma are cubics with leading coefficient -4.  On the stadium
+    // dist(z,[-1,1])<=R, each root factor is bounded below by dist(root,segment)-R.
+    std::array<double,2> m{};
+    for(int si=0;si<2;++si){
+        m[si]=4.0;
+        for(auto z:roots_by_sign[si]){
+            const double d=appendix_b_distance_to_real_segment(z)-R;
+            if(!(d>0.0)) throw std::runtime_error("complex neighborhood crosses a chi/zeta pole");
+            m[si]*=d;
+        }
     }
+    const double qmin=m[0]*m[1];
 
     const double zmax=1.0+R;
     const double Hsup=appendix_b_poly_sup_from_coeffs({j0,4.5-h,-j0,-4.0},R);
@@ -123,19 +127,20 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     const double Linf=1.0-2.0*h*zmax*zmax;
     if(!(Linf>0.0)) throw std::runtime_error("L has a zero in the chosen complex neighborhood bound");
     const double invLsup=1.0/Linf;
-    // W*=1-4(1-z^2)-2D z(4z+j0)= -3 -2D*j0*z +(4-8D)z^2.
     const double D=0.5-h;
     const double Wsup=appendix_b_poly_sup_from_coeffs({-3.0,-2.0*D*j0,4.0-8.0*D},R);
     const double etasup=zmax;
     const double dsup=1.0+zmax*zmax;
     const double om2eUsup=appendix_b_poly_sup_from_coeffs({1.0,-2.0*j0,-8.0},R);
     const double A=0.5+h;
-    // A(1-4 z U*) + 4d = (A+4) -4A*j0*z -(16A+4)z^2.
     const double linear_usup=appendix_b_poly_sup_from_coeffs({A+4.0,-4.0*A*j0,-16.0*A-4.0},R);
     const double Aeta4sup=4.0*A*zmax;
 
-    const double chisup=Hsup*Hsup/qmin;
-    const double zetasup=Lsup*Hsup/qmin;
+    // Use the partial-fraction identities instead of |H|/qmin.  They retain
+    // the correct O(1) scale for chi and O(1/sigma) scale for zeta.
+    const double chisup=1.0+sigma*sigma/qmin;
+    const double H_over_Q_sup=0.5*(1.0/m[0]+1.0/m[1]);
+    const double zetasup=Lsup*H_over_Q_sup;
     const double F=appendix_b_cauchy_brho_factor(rho,R);
 
     AppendixBMultiplierNorms M{};
@@ -150,10 +155,9 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     M.linear_u=F*linear_usup;
     M.Aeta4=F*Aeta4sup;
 
-    // Choose C >= sup_Omega |phi*|.  A path from 0 to z in the stadium has
-    // length <=1+R, so log C = Lambda(1+R)sup|zeta| is sufficient.  Then
-    // sup_Omega|g|<=1, and all eta derivatives of g are controlled by the same
-    // Cauchy factor F.  The fixed-point budget therefore receives g_bound=F.
+    // C >= sup_Omega |phi*| with phi*=exp(Lambda integral zeta*).  A path from
+    // 0 to any point of the stadium has length <=1+R.  After this choice,
+    // sup_Omega |g|<=1, and Cauchy controls all beta derivatives of g by F.
     const double logC=Lambda*(1.0+R)*zetasup;
 
     AppendixBAnalyticMultiplierAudit out;
@@ -161,6 +165,8 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     out.rho=rho;
     out.outer_radius=R;
     out.nearest_chi_zeta_pole_distance=pole_dist;
+    out.min_H_minus_isigma=m[0];
+    out.min_H_plus_isigma=m[1];
     out.qmin_H2_plus_sigma2=qmin;
     out.scalar_cauchy_factor=F;
     out.log_C_for_g=logC;
