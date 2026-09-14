@@ -52,17 +52,24 @@ int main() {
         !(scale.log_Lambda_for_U_tolerance > 2.0 * p.log_Pstar)) return 7;
 
     constexpr double rho = 1e-5;
-    const auto brho = appendix_b_brho_infinite_beta_operator_audit(18, rho);
-    if (!brho.infinite_eta_certified ||
+    const auto brho = appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
+    if (!brho.infinite_eta_certified || !brho.infinite_radial_certified ||
         !(brho.product > 0.0 && brho.product_J1 > 0.0 && brho.product_J2 > 0.0 &&
           brho.mixed_AX_J1 > 0.0 && brho.mixed_AX_J2 > 0.0 &&
           brho.deta_J1 > 0.0 && brho.deta_J2 > 0.0 &&
           brho.pressure_J1_I > 0.0 && brho.pressure_J1_detaI > 0.0 &&
           brho.pressure_J1_DXI > 0.0)) return 8;
-    // Standalone eta-sensitive operators are deliberately unavailable in the
-    // all-beta proof path. Their actual composites above must be used instead.
     if (std::isfinite(brho.I) || std::isfinite(brho.J1) ||
-        std::isfinite(brho.J2) || std::isfinite(brho.deta)) return 14;
+        std::isfinite(brho.J2) || std::isfinite(brho.deta) ||
+        std::isfinite(brho.DX)) return 14;
+
+    // Compatibility wrapper must be exactly independent of the supplied radial
+    // cutoff; this catches any accidental reintroduction of finite-alpha scans.
+    const auto brho8 = appendix_b_brho_infinite_beta_operator_audit(8, rho);
+    const auto brho64 = appendix_b_brho_infinite_beta_operator_audit(64, rho);
+    if (brho8.product_J2 != brho64.product_J2 ||
+        brho8.mixed_AX_J2 != brho64.mixed_AX_J2 ||
+        brho8.pressure_J1_detaI != brho64.pressure_J1_detaI) return 15;
 
     const auto sep = appendix_b_separation_audit(p, 0.05, 20.0, 0.05, 0.05, 121);
     const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
@@ -80,14 +87,14 @@ int main() {
     const auto fixed = appendix_b_fixed_map_lipschitz_budget(
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound,
         mult.scalar_cauchy_factor);
-    std::cerr << "all-beta fixed map: product=" << brho.product
+    std::cerr << "all-alpha-beta fixed map: product=" << brho.product
               << " mixedAX2=" << brho.mixed_AX_J2
               << " pressureDeta=" << brho.pressure_J1_detaI
               << " inv=" << fixed.inverse_one_plus_T_bound
               << " K=" << fixed.inverse_factorial_K
               << " contraction=" << fixed.contraction_bound << '\n';
-    if (!fixed.infinite_eta_certified || !fixed.inverse_certified ||
-        !(fixed.inverse_one_plus_T_bound > 0.0) ||
+    if (!fixed.infinite_eta_certified || !fixed.infinite_radial_certified ||
+        !fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
     if (!(fixed.inverse_finite_prefix_bound > 1.0 &&
           fixed.inverse_analytic_tail_bound >= 0.0 &&
@@ -114,11 +121,11 @@ int main() {
         }
     }
     if (!(closing_factor > 0.0)) {
-        std::cerr << "all-beta fixed-map audit did not close through 1e40 Lambda factor\n";
+        std::cerr << "all-alpha-beta fixed-map audit did not close through 1e40 Lambda factor\n";
         return 13;
     }
 
-    std::cout << "Appendix B all-beta fixed map: rho=" << rho
+    std::cout << "Appendix B all-alpha-beta fixed map: rho=" << rho
               << " R=" << mult.outer_radius
               << " chi=" << mult.norms.chi
               << " zeta=" << mult.norms.zeta
