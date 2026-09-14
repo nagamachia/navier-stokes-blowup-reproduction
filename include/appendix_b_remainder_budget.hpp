@@ -16,17 +16,16 @@ struct AppendixBMultiplierNorms {
     double eta{};
     double d{};
     double zeta{};
+    double chi{};           // H_*^2/(H_*^2+sigma_*^2), for T=(1/2)J_2(chi .)
     double one_minus_2etaUstar{};
     double linear_u{};      // A(1-4 eta U*)+d U*_eta
     double Aeta4{};         // 4 A eta
 };
 
 struct AppendixBRemainderBudget {
-    // R1 groups
     double r1_bracket_phi{};
     double r1_W_DXPhi{};
     double r1_H_detaPhi{};
-    // R2 groups
     double r2_linear_u{};
     double r2_u2{};
     double r2_W_DXu{};
@@ -41,11 +40,6 @@ struct AppendixBRemainderBudget {
     double pressure_fraction{};
 };
 
-// Finite-truncation Lipschitz budget on a max-norm ball
-// ||Phi||_rho <= Phi_bound, ||u||_rho <= u_bound.
-// g_bound is ||g||_rho for g=phi*/C.  Every line below corresponds to one
-// displayed term in R1/R2 following (B.15).  It is intentionally conservative:
-// repeated products pay the finite B-rho multiplication constant each time.
 inline AppendixBRemainderBudget appendix_b_remainder_lipschitz_budget(
     const AppendixBRhoOperatorAudit& op,
     const AppendixBMultiplierNorms& m,
@@ -59,14 +53,12 @@ inline AppendixBRemainderBudget appendix_b_remainder_lipschitz_budget(
         throw std::invalid_argument("invalid Appendix B remainder budget parameters");
 
     const double C=op.product, DX=op.DX, AX=op.AX, De=op.deta, I=op.I;
-    // B=-2D eta AX(u)-d AX(d_eta u), with |D|<=1/2 for 0<h<1/2.
     const double LB = C*m.eta*AX + C*m.d*AX*De;
     const double Wb = m.Wstar + LB*u_bound/Lambda;
     const double LW = LB/Lambda;
     const double LH = C*m.d/Lambda;
     const double Hb = m.Hstar + LH*u_bound;
 
-    // K = W + h(1-2 eta U*) -2h eta u/Lambda + d zeta u.
     const double Ku = C*(2.0*h*m.eta/Lambda + C*m.d*m.zeta);
     const double Kb = Wb + h*m.one_minus_2etaUstar + Ku*u_bound;
     const double LK = LW + Ku;
@@ -83,8 +75,6 @@ inline AppendixBRemainderBudget appendix_b_remainder_lipschitz_budget(
     out.r2_H_deta_u = C*m.invL * C*m.Hstar*De;
     out.r2_u_deta_u = C*m.invL * (C*C)*(m.d/Lambda)*(2.0*De*u_bound);
 
-    // p=I(g^2 Phi^2).  The Lipschitz factor in Phi is bounded by
-    // 2 I C^3 ||g||^2 ||Phi||.
     const double Lp = 2.0*I*C*C*C*g_bound*g_bound*Phi_bound;
     out.r2_pressure_p = C*m.invL * C*m.Aeta4*Lp;
     out.r2_pressure_peta = C*m.invL * C*m.d*De*Lp;
