@@ -2,7 +2,7 @@
 
 ## 対象
 
-Proposition B.2 の係数空間で用いられる (B.4) の重みと、(B.15) 後の nonlinear remainder `R1`,`R2`、さらに実際の fixed-point map
+Proposition B.2 の係数空間で用いられる B.4 の重みと、B.15 後の nonlinear remainder `R1`,`R2`、さらに実際の fixed-point map
 
 `Phi -> Phi0 + (1+T)^-1 J2(R1)/(2 Lambda)`
 
@@ -10,33 +10,33 @@ Proposition B.2 の係数空間で用いられる (B.4) の重みと、(B.15) �
 
 を監査する。
 
-ここでの計算は論文の無限次元 Banach-space 証明を置き換えない。現在は radial degree `alpha` について無限 factorial tail まで解析的に閉じ、さらに `chi`, `zeta*`, `1/L`, `H*`, `W*`, `g=phi*/C` など固定 eta multiplier は complex neighborhood 上の Cauchy estimate により **全 beta** を一括評価する。
+現在の実装では
 
-ただし、積・B.6 mixed estimate 等の coefficient-space operator constant はまだ `beta_max=6` の有限和から評価している。そのため「multiplier の eta 方向」は全 beta 化したが、Proposition B.2 の Bρ operator algebra 全体が無限 beta で閉じたわけではない。
+- radial degree `alpha` の `(1+T)^-1` tail は factorial majorant で無限まで閉じる。
+- `chi`, `zeta*`, `1/L`, `H*`, `W*`, `g=phi*/C` 等の固定 eta multiplier は complex neighborhood 上の Cauchy estimate により全 beta を一括評価する。
+- product / B.6 mixed / Jnu composite / pressure composite は B.7--B.10 型の beta-independent convolution majorant に置き換え、fixed-point map の実経路から `beta_max=6` 依存を除いた。
+
+ただし、以下の all-beta 数値定数は原典の構造を再現するための保守的 majorant であり、B.7--B.10 の最適定数または原典記載の定数をそのまま転記したものとは扱わない。primary manuscript の exact typesetting / constant の再確認は別途必要である。
 
 ## B.4 weight
 
-実装は論文の重み
+現在の転記では
 
 `a(alpha,beta) = 20^(-alpha) rho^(-beta) beta! binom(alpha+beta,beta) / ((alpha+1)^2 (beta+1)^2)`
 
-を直接使用する。
-
-`include/appendix_b_brho.hpp` では、積の Leibniz 展開と `I`, `A_X`, `D_X`, `J1`, `J2`、B.6 型 composite operator の有限 `(alpha,beta)` constant を計算する。
+を使用する。
 
 ## fixed multiplier の全 beta analytic bound
 
-`include/appendix_b_analytic_multiplier.hpp` では、real-axis 上の有限 Taylor jet sampling の代わりに、`[-1,1]` の周囲の complex stadium
+`include/appendix_b_analytic_multiplier.hpp` では、`[-1,1]` の周囲の complex stadium
 
 `Omega_R = { z : dist(z,[-1,1]) <= R }`
 
-を使う。
-
-scalar multiplier `f` が `Omega_R` で正則かつ
+を使う。scalar multiplier `f` が `Omega_R` で正則かつ
 
 `sup_{Omega_R} |f| <= M`
 
-なら、Cauchy estimate より
+なら Cauchy estimate より
 
 `|d_eta^beta f| <= M beta! R^(-beta)`
 
@@ -44,39 +44,29 @@ scalar multiplier `f` が `Omega_R` で正則かつ
 
 `||f||_(Bρ) <= M * sup_{beta>=0} (rho/R)^beta (beta+1)^2`
 
-となる。コードはこの最後の supremum を `scalar_cauchy_factor` として全 beta について評価する。
+となる。
 
-ordered baseline の `rho=1e-5` では `R=4e-5` とし、`rho/R=1/4` なので Cauchy factor は `1` である。
+ordered baseline の `rho=1e-5` では `R=4e-5` とし、Cauchy factor は `1` である。
 
 ### H*, chi, zeta* の pole separation
 
-`H*(z)` は
-
 `H*(z) = j0 + (4.5-h) z - j0 z^2 - 4 z^3`
 
-である。`chi` と `zeta*` の pole は `H*(z)=+/- i sigma*` にある。
+で、`chi` と `zeta*` の pole は `H*(z)=+/- i sigma*` にある。
 
-数値 root finder は最寄り pole 距離の診断値を保存するが、正則性の保証そのものには使わない。実際の bound は `z=x+iy` に対する恒等式
+数値 root finder は最寄り pole 距離の cross-check にのみ使い、正則性の保証には
 
-`Im H*(x+iy) = y ( H*'(x) + 4 y^2 )`
+`Im H*(x+iy) = y (H*'(x) + 4 y^2)`
 
-を使う。
+を使う。`G=sup |H*'|` として
 
-`G = sup_{x in [-1-R,1+R]} |H*'(x)|`
+`m = sigma* - R (G + 4R^2) > 0`
 
-とすると `Omega_R` 上で
+なら
 
-`|Im H*(z)| <= R (G + 4 R^2)`
+`|H*(z) +/- i sigma*| >= m`
 
-である。そこで
-
-`m = sigma* - R (G + 4 R^2)`
-
-が正なら
-
-`|H*(z) +/- i sigma*| >= m > 0`
-
-となり、`Omega_R` に pole が存在しないことが直接分かる。
+である。
 
 さらに
 
@@ -84,92 +74,97 @@ ordered baseline の `rho=1e-5` では `R=4e-5` とし、`rho/R=1/4` なので C
 
 `H*/(H*^2+sigma*^2) = (1/2)[1/(H*-i sigma*) + 1/(H*+i sigma*)]`
 
-を使うため、粗い `sup|H| / inf|H^2+sigma^2|` を使わず
-
-`sup |chi| <= 1 + sigma*^2/m^2`
-
-`sup |zeta*| <= sup|L|/m`
-
-と評価できる。
-
-### 1/L, H*, W*
-
-`L(z)=1-2h z^2` については
-
-`|L(z)| >= 1 - 2h(1+R)^2`
-
-を使う。ordered baseline では `h=e^-80` なので 1/L はほぼ 1 のままである。
-
-`H*`, `W*`, `eta`, `d`, `1-2eta U*`, R2 の linear-u coefficient, `4A eta` はすべて低次多項式なので、係数絶対値と `|z|<=1+R` から complex sup を直接上から抑え、その後 Cauchy factor を掛けて全 beta の Bρ norm とする。
+を使い、`chi` と `zeta*` を直接評価する。
 
 ### g=phi*/C
 
-`phi*(z) = exp(Lambda integral_0^z zeta*(w) dw)`
-
-である。Lambda が巨大なので `phi*` の高階微分を直接展開しない。論文の順序どおり Lambda を先に選び、その後 C を十分大きく取る。
-
-`Omega_R` 内の 0 から z までの path length を `1+R` で抑えると
+`phi*(z)=exp(Lambda integral_0^z zeta*(w)dw)` に対して、原典の順序どおり Lambda を選んだ後 C を選ぶ。
 
 `log C >= Lambda (1+R) sup_{Omega_R}|zeta*|`
 
-で
+とすれば `sup_{Omega_R}|g|<=1` であり、g の全 beta derivative も Cauchy estimate で閉じる。C は exponentiate せず `log_C_for_g` のみ保存する。
 
-`sup_{Omega_R}|g| <= 1`
+## B.7--B.10 型 infinite-beta convolution majorant
 
-を保証できる。したがって g の全 beta derivative も同じ Cauchy estimate で閉じ、fixed-point budget には
+`include/appendix_b_brho.hpp` の `appendix_b_brho_infinite_beta_operator_audit` が all-beta proof path を担当する。
 
-`||g||_(Bρ) <= scalar_cauchy_factor`
+beta 重みの基本畳み込みについて
 
-を渡す。C 自体は桁が巨大なので exponentiate せず `log_C_for_g` のみ保存する。
+`sum_{r=0}^beta 1 / ((r+1)^2 (beta-r+1)^2)`
 
-## B.6 mixed estimate
+を beta に依存しない形で
 
-`d_eta` と `D_X` を独立 operator として掛け合わせると非常に粗い bound になる。論文はこの組合せを
+`<= C2 / (beta+1)^2`
 
-`J_nu[(d_eta F)(D_X G)]`
+と抑え、実装では明示的な保守定数
 
-として一体で評価する。
+`C2 = 4 pi^2 / 3`
 
-実装では特に
+を使う。product majorant は
 
-- `J2[(d_eta A_X u)(D_X Phi)]`
-- `J1[(d_eta A_X u)(D_X u)]`
+`C_alg = C2^2`
 
-に `mixed_AX_J2`, `mixed_AX_J1` を直接適用する。
+とし、radial index と eta derivative shift は別の explicit factor で吸収する。
 
-現時点の重要な未完了点は、これら operator constants 自体がまだ `beta_max=6` の有限 convolution audit であること。fixed multiplier は全 beta 化済みだが、この operator algebra を B.7--B.10 の infinite-beta convolution inequality に置き換える必要がある。
+現在 `radial_order=18` の audit では
 
-## (1+T)^-1: finite prefix + analytic factorial tail
-
-`T=(1/2)J2(chi .)` について単純な `||T||<1` は要求しない。`T` は radial degree を必ず1つ上げ、B.4 weight の比から
-
-`step_alpha <= K / ((alpha+1)(alpha+2))`
-
-`K = 40 ||chi||_(Bρ)`
-
-を使う。start degree 0 では
-
-`||T^k|| <= K^k / (k! (k+1)!)`
+- `product_bound = 173.1717173937821`
+- `mixed_AX_J2 = 3.9898763687527388e14` at `rho=1e-5`
+- `pressure_J1_detaI = 3.5465567722246573e17` at `rho=1e-5`
 
 となる。
 
-`include/appendix_b_full_inverse.hpp` は有限 k prefix と analytic factorial tail を組み合わせる。fixed multiplier を全 beta Cauchy bound に置き換えた後は `||chi||_(Bρ)` が保守的に大きくなるため、`include/appendix_b_fixed_map_budget.hpp` は finite prefix の終了 k を固定 18 にせず、最初の omitted factorial ratio が 1/2 未満になるまで自動延長する。
+これはかなり保守的だが、beta=0..infinity を一括して含む majorant である。
 
-ordered baseline `rho=1e-5` の all-beta multiplier audit では
+### standalone operator を使わない理由
 
-- `analytic radius R = 4e-5`
-- 最寄り `H*=+/-i sigma*` root の診断距離: 約 `5.556e-4`
-- Cauchy factor: `1`
+all-beta path では standalone の
+
+- `I`
+- `J1`
+- `J2`
+- `d_eta`
+
+には有限 certified constant を割り当てず、意図的に `infinity` とする。
+
+代わりに、実際の方程式に現れる composite
+
+- `Jnu(FG)`
+- `Jnu(F D_X G)`
+- `Jnu(F d_eta G)`
+- `Jnu[(d_eta F)(D_X G)]`
+- `A_X(F)` を含む同型の composite
+- pressure の `J1 I`, `J1 d_eta I`, `J1 D_X I`
+
+だけを直接 all-beta で抑える。
+
+これは、`d_eta` や `D_X` を独立 operator norm に分離して巨大化させず、B.6--B.10 の構造を保持するためである。また old finite-beta path が誤って使われた場合には `infinity` が伝播して CI で露出する。
+
+## (1+T)^-1 の all-beta inverse
+
+`T=(1/2)J2(chi .)` について
+
+`K = 40 ||chi||_(Bρ)`
+
+とし、全 beta に対する factorial envelope
+
+`||T^k|| <= K^k / (k! (k+1)!)`
+
+を直接使う。
+
+`appendix_b_full_inverse_all_beta_audit` は有限 eta jet を一切参照せず、tail ratio が 1/2 未満になるまで k-prefix を積み、その後を geometric majorant で閉じる。
+
+`rho=1e-5` では
+
 - `||chi||_(Bρ) <= 2.2960763861`
-- `||zeta*||_(Bρ) <= 455.38140254`
-- `K = 91.84305544`
-- full radial inverse bound: `10587.80005495`
-  - finite prefix: `10501.93259851`
-  - factorial tail: `85.86745644`
+- `K = 91.8430554443`
+- all-beta inverse bound `||(1+T)^-1|| <= 1.9655515236e6`
+- prefix `1.9654656562e6`
+- tail `85.86745644`
 
-となった。
+となる。
 
-## analytic eta multiplier を入れた fixed-point map
+## all-beta fixed-point map の結果
 
 B.13 の `|U-U*|<=0.05` から得る基準値は
 
@@ -177,13 +172,12 @@ B.13 の `|U-U*|<=0.05` から得る基準値は
 
 である。
 
-`rho=1e-5`, `Phi_bound=2`, `u_bound=1.1 max|u0|` で、fixed multiplier と g を all-beta complex-neighborhood bound に置き換えた結果、fixed-point Lipschitz bound は
+`rho=1e-5`, `Phi_bound=2`, `u_bound=1.1 max|u0|` で、fixed multiplier と operator algebra の双方を all-beta majorant にした fixed-point Lipschitz bound は
 
-- `Lambda = Lambda0`: `1.523708526e8`
-- `Lambda = 1e6 Lambda0`: `152.3708526`
-- `Lambda = 1e7 Lambda0`: `15.23708526`
-- `Lambda = 1e8 Lambda0`: `1.523708526`
-- `Lambda = 1e9 Lambda0`: `0.1523708526` — contraction `<1`
+- `Lambda = Lambda0`: `1.0226585827e18`
+- `Lambda = 1e18 Lambda0`: `1.0226585827` — わずかに 1 より大きい
+- `Lambda = 1e20 Lambda0`: `0.01022658583` — contraction `<1`
+- `Lambda = 1e24 Lambda0`: `1.0226586e-6`
 
 となる。
 
@@ -191,36 +185,58 @@ B.13 の `|U-U*|<=0.05` から得る基準値は
 
 `d zeta* u Phi`
 
-を通る channel である。all-beta bound は finite-beta sampled multiplier よりかなり保守的なので、必要な Lambda decade は `1e7 Lambda0` から `1e9 Lambda0` へ上がった。この値は論文の最適定数や最小 Lambda を意味しない。
+を通る channel であり、pressure channel はこの ordered baseline では支配的ではない。
 
-`log_C_for_g` は Lambda に比例し、基準 Lambda0 でも非常に大きい。これは C を数値的に実体化する必要があるという意味ではなく、原典の「Lambda を選んだ後 C>=C0(Lambda) を選ぶ」という存在証明の順序を log-space で監査している。
+必要 Lambda factor が finite-beta audit より大きくなったのは、今回の all-beta operator constants が proof-oriented な保守 majorantだからである。これは最小 Lambda や原典の最適定数を意味しない。
 
-## 成果物
+rho sweep では、現在の保守 bound の範囲で
+
+- `rho=1e-5`: `1e20 Lambda0` で閉じる。
+- `rho=2e-5`: `1e20 Lambda0` で閉じる。
+- `rho=5e-5`: 約 `1e28 Lambda0` で閉じる。
+- `rho=1e-4`: `1e40 Lambda0` で閉じる。
+- `rho=2e-4`: 現在の `1e40` sweep では閉じない。
+
+したがって、今回の conservative analytic majorant では小さい rho の方が有利である。
+
+## CI / 成果物
 
 CI は次を生成する。
 
-- `results/reference/appendix_b_scale.csv`: B.13 から得る ordered Lambda scale
-- `results/reference/appendix_b_brho.csv`: rho sweep、operator constants、all-beta analytic multiplier norms、raw R1/R2 budget
-- `results/reference/appendix_b_fixed_map.csv`: complex radius / pole-separation diagnostics / Cauchy factor / `log_C_for_g` / full radial inverse / fixed-map 各項 / contraction certification
+- `results/reference/appendix_b_scale.csv`
+- `results/reference/appendix_b_brho.csv`
+- `results/reference/appendix_b_fixed_map.csv`
 
-## 未完了境界
+`appendix_b_fixed_map.csv` には
 
-今回、requested multiplier
+- `infinite_eta=1`
+- all-beta product / mixed / pressure composite constants
+- complex radius / pole-separation diagnostics
+- Cauchy factor / `log_C_for_g`
+- all-beta `(1+T)^-1` bound
+- fixed-map 各項
+- contraction certification
 
-- `chi`
-- `zeta*`
-- `1/L`
-- `H*`
-- `W*`
-- `g=phi*/C`
+を保存する。
 
-の eta 方向は complex neighborhood 上の all-beta Cauchy bound へ置き換えた。
+## 現在の未完了境界
 
-Proposition B.2 の full Bρ analytic contraction と呼ぶには、次が残る。
+今回、eta derivative beta 方向については
 
-1. `appendix_b_brho.hpp` の product / B.6 mixed / Jnu composite constant を `beta_max=6` の有限列挙から、B.7--B.10 に基づく infinite-beta convolution bound へ置き換える。
-2. pressure channel の `J1 d_eta I` / `J1 D_X I` を専用 composite bound に置き換え、現在の保守的 standalone bound を削る。
-3. rho と radial finite-prefix split を変えたときの analytic bound / 必要 Lambda factor の安定性を確認する。
-4. 数値 floating-point root 距離は cross-check に留めているが、必要なら interval arithmetic による独立検証を追加する。
+- fixed multiplier
+- product algebra
+- B.6 mixed term
+- Jnu composites
+- pressure composites
+- `(1+T)^-1`
 
-radial alpha tail と固定 multiplier の eta derivative tail は切断依存を除いた。次の主要な切断依存は B.7--B.10 operator convolution の beta 方向である。
+から `beta_max=6` の切断依存を除いた。
+
+ただし Proposition B.2 の full Banach-space 証明再現と呼ぶには、まだ次が必要である。
+
+1. B.4 および B.7--B.10 の exact manuscript transcription / constant を primary PDF と照合する。現在の all-beta constants は保守的 reproduction majorant であり、原典の最適定数とは主張しない。
+2. nonlinear product / composite operator の radial alpha 方向はまだ `radial_order=18` 由来の polynomial majorantを使う。`(1+T)^-1` の radial tail は無限まで閉じたが、R1/R2 operator algebraの alpha 方向は次の主要な有限切断である。
+3. 必要なら interval arithmetic を導入し、complex pole separation / polynomial sup を floating-point cross-checkから独立に検証する。
+4. constants を sharpen して必要 Lambda factor の保守性を下げる。
+
+次の本筋は、B.7--B.10 の radial convolution についても `alpha=0..infinity` の explicit bound を作り、`radial_order=18` 依存を除くことである。
