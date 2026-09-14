@@ -22,6 +22,7 @@ int main(int argc,char**argv){
     if(!out){std::cerr<<"failed to open output\n";return 1;}
     out<<std::setprecision(17);
     out<<"rho,lambda_factor,log_Lambda,chi_norm,zeta_norm,T_bound,inverse_one_plus_T_bound,"
+          "inverse_finite_prefix_bound,inverse_analytic_tail_bound,inverse_factorial_K,inverse_envelope_ratio,"
           "phi_Wstar_Phi,phi_h_background_Phi,phi_B_etaAX_u_Phi,phi_B_detaAX_u_Phi,"
           "phi_h_u_Phi,phi_zeta_u_Phi,phi_Wstar_DXPhi,phi_B_etaAX_u_DXPhi,"
           "phi_B_detaAX_u_DXPhi,phi_Hstar_detaPhi,phi_u_detaPhi,"
@@ -39,6 +40,8 @@ int main(int argc,char**argv){
                 op,mult.norms,h,Lambda,2.0,1.1*u0,1.0);
             out<<rho<<','<<factor<<','<<std::log(Lambda)<<','<<mult.norms.chi<<','<<mult.norms.zeta<<','
                <<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','
+               <<b.inverse_finite_prefix_bound<<','<<b.inverse_analytic_tail_bound<<','
+               <<b.inverse_factorial_K<<','<<b.inverse_envelope_ratio<<','
                <<b.phi_Wstar_Phi<<','<<b.phi_h_background_Phi<<','
                <<b.phi_B_etaAX_u_Phi<<','<<b.phi_B_detaAX_u_Phi<<','
                <<b.phi_h_u_Phi<<','<<b.phi_zeta_u_Phi<<','
