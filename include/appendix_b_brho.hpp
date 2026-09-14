@@ -39,7 +39,6 @@ inline double appendix_b_brho_weight(std::size_t alpha, std::size_t beta, double
     return num/den;
 }
 
-// Jet stores d_eta^beta F_alpha directly, flattened by alpha-major order.
 struct AppendixBRhoJet {
     std::size_t radial_order{};
     std::size_t eta_order{};
@@ -60,7 +59,6 @@ inline double appendix_b_brho_norm(const AppendixBRhoJet& F,double rho) {
     return m;
 }
 
-// Exact finite-truncation Leibniz constant for multiplication in the B-rho norm.
 inline double appendix_b_brho_product_bound(std::size_t na,std::size_t nb,double rho) {
     double C=0.0;
     for(std::size_t a=0;a<=na;++a) for(std::size_t b=0;b<=nb;++b) {
@@ -76,9 +74,7 @@ inline double appendix_b_brho_product_bound(std::size_t na,std::size_t nb,double
     return C;
 }
 
-inline double appendix_b_brho_DX_bound(std::size_t na) {
-    return static_cast<double>(na);
-}
+inline double appendix_b_brho_DX_bound(std::size_t na) { return static_cast<double>(na); }
 inline double appendix_b_brho_AX_bound(std::size_t) { return 1.0; }
 
 inline double appendix_b_brho_I_bound(std::size_t na,std::size_t nb,double rho) {
@@ -101,8 +97,6 @@ inline double appendix_b_brho_Jnu_bound(std::size_t na,std::size_t nb,double rho
     return C;
 }
 
-// d_eta maps beta+1 derivatives to beta derivatives; this is the exact bound
-// on a jet with one extra eta derivative available.
 inline double appendix_b_brho_deta_bound(std::size_t na,std::size_t nb,double rho) {
     double C=0.0;
     for(std::size_t a=0;a<=na;++a) for(std::size_t b=0;b<nb;++b)
@@ -110,26 +104,32 @@ inline double appendix_b_brho_deta_bound(std::size_t na,std::size_t nb,double rh
     return C;
 }
 
-// Finite-truncation counterpart of the mixed estimate (B.6):
-// ||J_nu[(d_eta F)(D_X G)]|| <= C ||F|| ||G||.
-// If average_first=true, F is replaced by A_X(F), as also allowed in the paper.
-inline double appendix_b_brho_mixed_Jnu_bound(
-    std::size_t na,std::size_t nb,double rho,int nu,bool average_first=false) {
-    if(nu!=1 && nu!=2) throw std::invalid_argument("mixed Jnu requires nu=1 or 2");
+// Direct finite-truncation B.6 family.  The flags select
+// J_nu[(d_eta F)(D_X G)], J_nu[F(D_X G)], J_nu[F d_eta G], or J_nu[FG].
+// average_left replaces F by A_X(F).  Keeping J_nu inside this sum is the
+// essential point: splitting d_eta and D_X into separate operator norms loses
+// the alpha-beta compensation built into (B.4).
+inline double appendix_b_brho_bilinear_Jnu_bound(
+    std::size_t na,std::size_t nb,double rho,int nu,
+    bool deta_left,bool dx_right,bool deta_right=false,bool average_left=false) {
+    if(nu!=1 && nu!=2) throw std::invalid_argument("bilinear Jnu requires nu=1 or 2");
+    if(deta_left && deta_right) throw std::invalid_argument("only one eta derivative is supported");
     double C=0.0;
     for(std::size_t a=0;a<na;++a) for(std::size_t b=0;b<=nb;++b) {
         double s=0.0;
         for(std::size_t i=0;i<=a;++i) {
             const std::size_t j=a-i;
-            if(j==0) continue; // D_X annihilates radial degree zero.
+            if(dx_right && j==0) continue;
             for(std::size_t r=0;r<=b;++r) {
                 const std::size_t q=b-r;
-                if(r+1>nb) continue;
-                double left=appendix_b_brho_weight(i,r+1,rho);
-                if(average_first) left/=static_cast<double>(i+1);
-                s += appendix_b_brho_binomial(b,r)
-                    * left * static_cast<double>(j)
-                    * appendix_b_brho_weight(j,q,rho);
+                const std::size_t lr=r+(deta_left?1u:0u);
+                const std::size_t rq=q+(deta_right?1u:0u);
+                if(lr>nb || rq>nb) continue;
+                double left=appendix_b_brho_weight(i,lr,rho);
+                if(average_left) left/=static_cast<double>(i+1);
+                double right=appendix_b_brho_weight(j,rq,rho);
+                if(dx_right) right*=static_cast<double>(j);
+                s += appendix_b_brho_binomial(b,r)*left*right;
             }
         }
         const double den=static_cast<double>(a+1)*static_cast<double>(a+nu);
@@ -137,6 +137,12 @@ inline double appendix_b_brho_mixed_Jnu_bound(
         C=std::max(C,s/(den*outw));
     }
     return C;
+}
+
+inline double appendix_b_brho_mixed_Jnu_bound(
+    std::size_t na,std::size_t nb,double rho,int nu,bool average_first=false) {
+    return appendix_b_brho_bilinear_Jnu_bound(
+        na,nb,rho,nu,true,true,false,average_first);
 }
 
 struct AppendixBRhoOperatorAudit {
@@ -154,6 +160,12 @@ struct AppendixBRhoOperatorAudit {
     double mixed_J2{};
     double mixed_AX_J1{};
     double mixed_AX_J2{};
+    double product_J1{};
+    double product_J2{};
+    double DX_J1{};
+    double DX_J2{};
+    double deta_J1{};
+    double deta_J2{};
 };
 
 inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
@@ -169,7 +181,13 @@ inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
         appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,false),
         appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,false),
         appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,true),
-        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,true)};
+        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,true),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,true),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false,true),
+        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false,true)};
 }
 
 } // namespace nsblowup
