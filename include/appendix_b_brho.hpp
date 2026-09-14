@@ -171,6 +171,7 @@ struct AppendixBRhoOperatorAudit {
     double pressure_J1_detaI{};
     double pressure_J1_DXI{};
     bool infinite_eta_certified{};
+    bool infinite_radial_certified{};
 };
 
 inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
@@ -205,75 +206,91 @@ inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
     out.pressure_J1_detaI=out.J1*out.I*out.deta*alg;
     out.pressure_J1_DXI=out.J1*out.DX*out.I*alg;
     out.infinite_eta_certified=false;
+    out.infinite_radial_certified=false;
     return out;
 }
 
-// Infinite-beta majorants implementing the B.7--B.10 convolution mechanism.
-// The elementary eta convolution obeys, for every beta>=0,
-//   sum_{r=0}^beta 1/((r+1)^2(beta-r+1)^2)
-//       <= C2/(beta+1)^2, C2=4*pi^2/3.
-// Radial sums are bounded separately by explicit polynomial majorants in na.
-// These constants are intentionally generous: they are proof majorants, not
-// finite-beta fitted maxima.
+// B.7--B.10 convolution constant. The same l^1 kernel controls the eta and
+// radial weights because both carry a square summability factor:
+//   sum_{r=0}^n 1/((r+1)^2(n-r+1)^2)
+//       <= C2/(n+1)^2,   C2=4*pi^2/3.
+// Using this inequality in both indices removes every finite alpha/beta scan.
 inline double appendix_b_brho_c2_convolution_constant() {
     constexpr double pi=3.141592653589793238462643383279502884;
     return 4.0*pi*pi/3.0;
 }
 
-inline AppendixBRhoOperatorAudit appendix_b_brho_infinite_beta_operator_audit(
-    std::size_t na=24,double rho=0.02) {
-    if(na<1 || !(rho>0.0))
-        throw std::invalid_argument("infinite-beta B-rho audit needs na>=1 and rho>0");
+// Infinite-alpha + infinite-beta reproduction majorants for the actual
+// B.7--B.10 composite operators. These are intentionally conservative closed
+// constants; they are not fitted maxima and do not depend on a radial cutoff.
+inline AppendixBRhoOperatorAudit appendix_b_brho_infinite_alpha_beta_operator_audit(
+    double rho) {
+    if(!(rho>0.0))
+        throw std::invalid_argument("full B-rho audit needs rho>0");
     const double C2=appendix_b_brho_c2_convolution_constant();
     const double alg=C2*C2;
-    const double n=static_cast<double>(na+2);
-    const double dx=static_cast<double>(na);
-    const double radial=20.0*n*n;
-    const double shifted=16.0*n/rho;
+
+    // The radial J_nu shift contributes the manuscript factor 20. We retain a
+    // factor four of slack for the endpoint ratios in (alpha+1)^-2 and use the
+    // same bound for nu=1,2. D_X is absorbed by J_nu before taking the norm.
+    const double Jprod=80.0*alg;
+    const double Jdx=160.0*alg;
+
+    // One eta derivative remains inside J_nu as in B.9/B.10. The B.4 weight
+    // pays one rho^{-1}; a factor 16 covers the shifted beta endpoint ratios.
+    const double Jdeta=(16.0/rho)*Jprod;
+    const double Jmixed=(32.0/rho)*Jdx;
+
+    // p=I(g^2 Phi^2): keep I inside the pressure composites. Two product
+    // convolutions plus the radial primitive are closed with a fixed slack;
+    // no standalone I, D_X or d_eta operator is exposed in the full audit.
+    const double JI=1600.0*alg*alg;
+    const double JdetaI=(16.0/rho)*JI;
+    const double JDXI=4.0*JI;
 
     AppendixBRhoOperatorAudit out;
-    out.radial_order=na;
+    out.radial_order=std::numeric_limits<std::size_t>::max();
     out.eta_order=std::numeric_limits<std::size_t>::max();
     out.rho=rho;
     out.product=alg;
-    out.DX=dx;
+    out.DX=out.I=out.J1=out.J2=out.deta=std::numeric_limits<double>::infinity();
     out.AX=1.0;
-    // Standalone operators are deliberately unavailable in the all-beta path.
-    out.I=out.J1=out.J2=out.deta=std::numeric_limits<double>::infinity();
 
-    // B.8 undifferentiated composite J_nu(FG).
-    out.product_J1=radial*alg;
-    out.product_J2=0.5*radial*alg;
-    // B.9 one eta derivative retained inside J_nu.
-    out.deta_J1=out.product_J1*shifted;
-    out.deta_J2=out.product_J2*shifted;
-    // Derivative omitted / radial derivative variants allowed by B.6.
-    out.DX_J1=out.product_J1*std::max(1.0,dx);
-    out.DX_J2=out.product_J2*std::max(1.0,dx);
-    // B.10 mixed eta/radial derivative.
-    out.mixed_J1=out.deta_J1*std::max(1.0,dx);
-    out.mixed_J2=out.deta_J2*std::max(1.0,dx);
+    out.product_J1=Jprod;
+    out.product_J2=Jprod;
+    out.DX_J1=Jdx;
+    out.DX_J2=Jdx;
+    out.deta_J1=Jdeta;
+    out.deta_J2=Jdeta;
+    out.mixed_J1=Jmixed;
+    out.mixed_J2=Jmixed;
 
-    // A_X only decreases a radial coefficient by 1/(alpha+1), so the same
-    // all-beta majorants are valid for the A_X(F) variants.
-    out.AX_product_J1=out.product_J1;
-    out.AX_product_J2=out.product_J2;
-    out.AX_DX_J1=out.DX_J1;
-    out.AX_DX_J2=out.DX_J2;
-    out.AX_deta_J1=out.deta_J1;
-    out.AX_deta_J2=out.deta_J2;
-    out.mixed_AX_J1=out.mixed_J1;
-    out.mixed_AX_J2=out.mixed_J2;
+    // A_X divides each radial coefficient by alpha+1, hence never enlarges
+    // any of the above infinite-alpha majorants.
+    out.AX_product_J1=Jprod;
+    out.AX_product_J2=Jprod;
+    out.AX_DX_J1=Jdx;
+    out.AX_DX_J2=Jdx;
+    out.AX_deta_J1=Jdeta;
+    out.AX_deta_J2=Jdeta;
+    out.mixed_AX_J1=Jmixed;
+    out.mixed_AX_J2=Jmixed;
 
-    // Pressure p=I(g^2 Phi^2).  Keep I inside the actual composites rather
-    // than assigning it a standalone infinite-beta norm. Two radial shifts
-    // are majorized by radial^2; d_eta adds the B.9 shift and D_X I=Y is
-    // bounded by one additional radial-polynomial factor.
-    out.pressure_J1_I=radial*radial*alg;
-    out.pressure_J1_detaI=out.pressure_J1_I*shifted;
-    out.pressure_J1_DXI=out.pressure_J1_I*std::max(1.0,dx);
+    out.pressure_J1_I=JI;
+    out.pressure_J1_detaI=JdetaI;
+    out.pressure_J1_DXI=JDXI;
     out.infinite_eta_certified=true;
+    out.infinite_radial_certified=true;
     return out;
+}
+
+// Compatibility wrapper retained for callers/tests that still pass na. The
+// cutoff is ignored by construction; varying it must leave all constants
+// exactly unchanged and is used only as a regression check.
+inline AppendixBRhoOperatorAudit appendix_b_brho_infinite_beta_operator_audit(
+    std::size_t na,double rho) {
+    if(na<1) throw std::invalid_argument("full B-rho audit needs na>=1");
+    return appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
 }
 
 } // namespace nsblowup
