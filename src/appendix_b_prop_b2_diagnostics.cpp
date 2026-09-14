@@ -32,13 +32,14 @@ int main(int argc,char**argv){
           "pi0_sup_outer,dpi0_sup_inner,pi0_brho,dpi0_brho,znorm_over_L_brho,log_Z_over_L,"
           "phi0_bound,u0_bound,ball_radius,phi_domain,u_domain,"
           "source_phi,source_u,source_norm,lipschitz_q,invariant_lhs,invariant_margin,"
-          "pressure_center_certified,infinite_alpha_beta,inverse_certified,contraction_certified,"
+          "analytic_center_certified,infinite_alpha_beta,inverse_certified,contraction_certified,"
           "invariant_ball_certified,proposition_b2_certificate\n";
     for(double factor=1.0;factor<=1e60;factor*=10.0){
         const double Lambda=Lambda0*factor;
         if(!std::isfinite(Lambda)) break;
         const auto am=appendix_b_analytic_multiplier_norms(h,0.05,sep.sigma_star,rho,0.45,Lambda);
-        const auto c=appendix_b_proposition_b2_certificate(op,am.norms,h,Lambda,u0,am.scalar_cauchy_factor);
+        const auto c=appendix_b_proposition_b2_certificate(
+            op,am.norms,h,Lambda,u0,am.scalar_cauchy_factor,center.certified);
         out<<rho<<','<<factor<<','<<std::log(Lambda)<<','
            <<center.pressure.inner_radius<<','<<center.pressure.outer_radius<<','
            <<center.pressure.f_sup_outer<<','<<center.pressure.pi0_normalized_sup_outer<<','
@@ -48,7 +49,7 @@ int main(int argc,char**argv){
            <<c.ball_radius<<','<<c.Phi_domain_bound<<','<<c.u_domain_bound<<','
            <<c.source.phi_source<<','<<c.source.u_source<<','<<c.source.source_norm<<','
            <<c.lipschitz.contraction_bound<<','<<c.invariant_lhs<<','<<c.invariant_margin<<','
-           <<(center.certified?1:0)<<','<<(c.infinite_alpha_beta?1:0)<<','<<(c.inverse_certified?1:0)<<','
+           <<(c.analytic_center_certified?1:0)<<','<<(c.infinite_alpha_beta?1:0)<<','<<(c.inverse_certified?1:0)<<','
            <<(c.contraction_certified?1:0)<<','<<(c.invariant_ball_certified?1:0)<<','
            <<(c.proposition_b2_certificate?1:0)<<'\n';
     }
