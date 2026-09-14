@@ -83,43 +83,49 @@ inline double appendix_b_poly_sup_from_coeffs(const std::vector<double>& c,doubl
     return s;
 }
 
+inline double appendix_b_Hprime_real_abs_bound(double h,double j0,double R) {
+    // H'(x)=4.5-h-2 j0 x-12 x^2 on x in [-1-R,1+R].
+    const double lo=-1.0-R, hi=1.0+R;
+    auto f=[&](double x){return 4.5-h-2.0*j0*x-12.0*x*x;};
+    double m=std::max(std::abs(f(lo)),std::abs(f(hi)));
+    const double xv=-j0/12.0;
+    if(xv>=lo && xv<=hi) m=std::max(m,std::abs(f(xv)));
+    return m;
+}
+
 inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     double h,double j0,double sigma,double rho,double radius_fraction=0.45,double Lambda=1.0) {
     if(!(h>0.0 && h<0.5) || !(j0>0.0) || !(sigma>0.0) || !(rho>0.0) ||
        !(radius_fraction>0.0 && radius_fraction<1.0) || !(Lambda>=1.0))
         throw std::invalid_argument("invalid Appendix B analytic multiplier parameters");
 
-    // H(z)=j0 +(4.5-h)z -j0 z^2 -4 z^3.
     const std::array<std::complex<double>,4> base={
         std::complex<double>(j0,0),std::complex<double>(4.5-h,0),
         std::complex<double>(-j0,0),std::complex<double>(-4.0,0)};
-    std::array<std::vector<std::complex<double>>,2> roots_by_sign;
     double pole_dist=std::numeric_limits<double>::infinity();
-    for(int si=0;si<2;++si){
-        const double sgn=si==0?-1.0:1.0;
+    for(double sgn:{-1.0,1.0}){
         auto c=base;
         c[0]-=std::complex<double>(0.0,sgn*sigma);
-        roots_by_sign[si]=appendix_b_cubic_roots(c);
-        for(auto z:roots_by_sign[si])
+        for(auto z:appendix_b_cubic_roots(c))
             pole_dist=std::min(pole_dist,appendix_b_distance_to_real_segment(z));
     }
     if(!(pole_dist>0.0) || !std::isfinite(pole_dist))
         throw std::runtime_error("failed to separate chi/zeta poles from [-1,1]");
-    const double R=radius_fraction*pole_dist;
+
+    // We only need a complex neighborhood wider than rho.  Taking R=4 rho
+    // keeps the all-beta Cauchy factor moderate; pole_dist remains an independent
+    // numerical cross-check.  The actual no-pole proof below uses Im H directly.
+    const double R=std::min(radius_fraction*pole_dist,4.0*rho);
     if(!(R>rho)) throw std::runtime_error("analytic neighborhood radius does not exceed rho");
 
-    // H(z) +/- i sigma are cubics with leading coefficient -4.  On the stadium
-    // dist(z,[-1,1])<=R, each root factor is bounded below by dist(root,segment)-R.
-    std::array<double,2> m{};
-    for(int si=0;si<2;++si){
-        m[si]=4.0;
-        for(auto z:roots_by_sign[si]){
-            const double d=appendix_b_distance_to_real_segment(z)-R;
-            if(!(d>0.0)) throw std::runtime_error("complex neighborhood crosses a chi/zeta pole");
-            m[si]*=d;
-        }
-    }
-    const double qmin=m[0]*m[1];
+    // For z=x+iy and H=j0+(4.5-h)z-j0 z^2-4z^3,
+    //   Im H(z)=y(H'(x)+4 y^2).
+    // Thus |H(z) +/- i sigma| >= sigma-|Im H(z)| uniformly on the stadium.
+    const double G=appendix_b_Hprime_real_abs_bound(h,j0,R);
+    const double imH=R*(G+4.0*R*R);
+    const double m=sigma-imH;
+    if(!(m>0.0)) throw std::runtime_error("imaginary-part separation is insufficient for chi/zeta poles");
+    const double qmin=m*m;
 
     const double zmax=1.0+R;
     const double Hsup=appendix_b_poly_sup_from_coeffs({j0,4.5-h,-j0,-4.0},R);
@@ -136,11 +142,9 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     const double linear_usup=appendix_b_poly_sup_from_coeffs({A+4.0,-4.0*A*j0,-16.0*A-4.0},R);
     const double Aeta4sup=4.0*A*zmax;
 
-    // Use the partial-fraction identities instead of |H|/qmin.  They retain
-    // the correct O(1) scale for chi and O(1/sigma) scale for zeta.
+    // chi=1-sigma^2/Q and H/Q=(1/2)[1/(H-i sigma)+1/(H+i sigma)].
     const double chisup=1.0+sigma*sigma/qmin;
-    const double H_over_Q_sup=0.5*(1.0/m[0]+1.0/m[1]);
-    const double zetasup=Lsup*H_over_Q_sup;
+    const double zetasup=Lsup/m;
     const double F=appendix_b_cauchy_brho_factor(rho,R);
 
     AppendixBMultiplierNorms M{};
@@ -155,9 +159,8 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     M.linear_u=F*linear_usup;
     M.Aeta4=F*Aeta4sup;
 
-    // C >= sup_Omega |phi*| with phi*=exp(Lambda integral zeta*).  A path from
-    // 0 to any point of the stadium has length <=1+R.  After this choice,
-    // sup_Omega |g|<=1, and Cauchy controls all beta derivatives of g by F.
+    // Choose C >= sup_Omega |phi*|.  Then sup_Omega |g|<=1 and all beta
+    // derivatives of g follow from the same Cauchy factor F.
     const double logC=Lambda*(1.0+R)*zetasup;
 
     AppendixBAnalyticMultiplierAudit out;
@@ -165,14 +168,14 @@ inline AppendixBAnalyticMultiplierAudit appendix_b_analytic_multiplier_norms(
     out.rho=rho;
     out.outer_radius=R;
     out.nearest_chi_zeta_pole_distance=pole_dist;
-    out.min_H_minus_isigma=m[0];
-    out.min_H_plus_isigma=m[1];
+    out.min_H_minus_isigma=m;
+    out.min_H_plus_isigma=m;
     out.qmin_H2_plus_sigma2=qmin;
     out.scalar_cauchy_factor=F;
     out.log_C_for_g=logC;
     out.sup_chi=chisup;
     out.sup_zeta=zetasup;
-    out.pole_separation_certified=R<pole_dist;
+    out.pole_separation_certified=R<pole_dist && m>0.0;
     out.cauchy_certified=R>rho && std::isfinite(F) && std::isfinite(chisup) && std::isfinite(zetasup);
     return out;
 }
