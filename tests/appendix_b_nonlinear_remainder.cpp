@@ -1,3 +1,4 @@
+#include "appendix_b_fixed_map_budget.hpp"
 #include "appendix_b_multiplier_audit.hpp"
 #include "appendix_b_nonlinear_remainder.hpp"
 #include "appendix_b_parameter_scale.hpp"
@@ -50,37 +51,41 @@ int main() {
     if (!std::isfinite(scale.log_Lambda_for_U_tolerance) ||
         !(scale.log_Lambda_for_U_tolerance > 2.0 * p.log_Pstar)) return 7;
 
-    // Appendix B chooses rho only after sigma_*.  For this ordered profile the
-    // zeta_* pole scale is about 5e-4, so use a radius safely below it.
     constexpr double rho = 1e-5;
     const auto brho = appendix_b_brho_operator_audit(18, 6, rho);
-    if (!(brho.product > 0.0 && brho.J1 > 0.0 && brho.J2 > 0.0 && brho.deta > 0.0 &&
-          brho.mixed_J1 > 0.0 && brho.mixed_J2 > 0.0)) return 8;
+    if (!(brho.product > 0.0 && brho.J1 > 0.0 && brho.J2 > 0.0 &&
+          brho.mixed_AX_J1 > 0.0 && brho.mixed_AX_J2 > 0.0 &&
+          brho.deta_J1 > 0.0 && brho.deta_J2 > 0.0)) return 8;
     const auto sep = appendix_b_separation_audit(p, 0.05, 20.0, 0.05, 0.05, 121);
     const auto mult = appendix_b_sample_multiplier_norms(
         std::exp(p.log_h), 0.05, sep.sigma_star, sep.eta0, rho, 6, 1201);
-    if (!(mult.norms.invL > 0.0 && mult.norms.zeta > 0.0) || !std::isfinite(mult.norms.zeta)) return 9;
+    if (!(mult.norms.invL > 0.0 && mult.norms.zeta > 0.0 && mult.norms.chi > 0.0) ||
+        !std::isfinite(mult.norms.zeta) || !std::isfinite(mult.norms.chi)) return 9;
 
     const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
     const double u0_bound = std::exp(scale.max_log_abs_u0_Ymax);
-    const auto budget = appendix_b_remainder_lipschitz_budget(
+    const auto fixed = appendix_b_fixed_map_lipschitz_budget(
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound, 1.0);
-    if (!(budget.M > 0.0 && std::isfinite(budget.M))) return 10;
-    const double beta_radial_proxy = std::max(brho.J1/2.0, brho.J2/2.0);
-    const double log_contraction_proxy = std::log(beta_radial_proxy) +
-        std::log(budget.M) - scale.log_Lambda_for_U_tolerance;
+    if (!fixed.inverse_certified || !(fixed.T_bound < 1.0) ||
+        !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
+    if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0)) return 11;
 
-    // This is deliberately a diagnostic, not a proof condition.  The full
-    // fixed-point channel still needs the B-rho bound for (1+T)^-1 and uses
-    // B.6 mixed estimates rather than the standalone deta*DX product below.
-    if (!std::isfinite(log_contraction_proxy)) return 11;
-    std::cout << "Appendix B B-rho raw budget: rho=" << rho
-              << " logLambda=" << scale.log_Lambda_for_U_tolerance
-              << " logM=" << std::log(budget.M)
-              << " rawLogProxy=" << log_contraction_proxy
-              << " sigma=" << sep.sigma_star
-              << " zetaNorm=" << mult.norms.zeta
-              << " mixedJ1=" << brho.mixed_J1
-              << " mixedJ2=" << brho.mixed_J2 << '\n';
+    // Lambda is free after the earlier Appendix-B choices.  A sufficiently
+    // larger Lambda must close the same finite-truncation fixed-map budget.
+    const auto fixed_large = appendix_b_fixed_map_lipschitz_budget(
+        brho, mult.norms, std::exp(p.log_h), 1e4*Lambda, 2.0, 1.1*u0_bound, 1.0);
+    if (!fixed_large.contraction_certified) {
+        std::cerr << "large-Lambda direct fixed-map audit did not close: "
+                  << fixed_large.contraction_bound << '\n';
+        return 12;
+    }
+
+    std::cout << "Appendix B direct fixed map: rho=" << rho
+              << " T=" << fixed.T_bound
+              << " inv=" << fixed.inverse_one_plus_T_bound
+              << " Mphi=" << fixed.M_phi_map
+              << " Mu=" << fixed.M_u_map
+              << " contraction=" << fixed.contraction_bound
+              << " largeLambda=" << fixed_large.contraction_bound << '\n';
     return 0;
 }
