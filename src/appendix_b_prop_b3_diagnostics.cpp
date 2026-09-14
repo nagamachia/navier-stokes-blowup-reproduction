@@ -63,6 +63,7 @@ int main(int argc,char**argv){
             out<<"nan,nan,nan,nan,nan,nan,nan,0,nan,nan,nan,0,0,0,0,0";
         }
         out<<'\n';
+        if(evaluated && b3.proposition_b3_certificate) break;
     }
     return 0;
 }
