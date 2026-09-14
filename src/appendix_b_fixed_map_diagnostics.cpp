@@ -22,20 +22,21 @@ int main(int argc,char**argv){
     if(!out){std::cerr<<"failed to open output\n";return 1;}
     out<<std::setprecision(17);
     out<<"rho,lambda_factor,log_Lambda,analytic_radius,pole_distance,min_H_pm_isigma,qmin_H2_plus_sigma2,cauchy_factor,log_C_for_g,"
-          "chi_norm,zeta_norm,T_bound,inverse_one_plus_T_bound,inverse_finite_k,"
-          "inverse_finite_prefix_bound,inverse_analytic_tail_bound,inverse_factorial_K,inverse_envelope_ratio,"
-          "phi_Wstar_Phi,phi_h_background_Phi,phi_B_etaAX_u_Phi,phi_B_detaAX_u_Phi,"
-          "phi_h_u_Phi,phi_zeta_u_Phi,phi_Wstar_DXPhi,phi_B_etaAX_u_DXPhi,"
-          "phi_B_detaAX_u_DXPhi,phi_Hstar_detaPhi,phi_u_detaPhi,"
+          "chi_norm,zeta_norm,infinite_eta,product_bound,mixed_AX_J2,pressure_J1_detaI,T_bound,"
+          "inverse_one_plus_T_bound,inverse_finite_k,inverse_finite_prefix_bound,inverse_analytic_tail_bound,"
+          "inverse_factorial_K,inverse_envelope_ratio,phi_Wstar_Phi,phi_h_background_Phi,"
+          "phi_B_etaAX_u_Phi,phi_B_detaAX_u_Phi,phi_h_u_Phi,phi_zeta_u_Phi,phi_Wstar_DXPhi,"
+          "phi_B_etaAX_u_DXPhi,phi_B_detaAX_u_DXPhi,phi_Hstar_detaPhi,phi_u_detaPhi,"
           "u_linear,u_quadratic,u_Wstar_DXu,u_B_etaAX_u_DXu,u_B_detaAX_u_DXu,"
           "u_Hstar_detau,u_u_detau,u_pressure_p,u_pressure_peta,u_pressure_DXp,"
           "M_phi_map,M_u_map,contraction_bound,inverse_certified,contraction_certified\n";
 
-    const double factors[]={1.0,10.0,100.0,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12};
+    const double factors[]={1.0,1e2,1e4,1e6,1e8,1e10,1e12,1e14,1e16,1e18,1e20,1e24,1e28,1e32,1e36,1e40};
     for(double rho:{1e-5,2e-5,5e-5,1e-4,2e-4}){
-        const auto op=appendix_b_brho_operator_audit(18,6,rho);
+        const auto op=appendix_b_brho_infinite_beta_operator_audit(18,rho);
         for(double factor:factors){
             const double Lambda=Lambda0*factor;
+            if(!std::isfinite(Lambda)) continue;
             const auto mult=appendix_b_analytic_multiplier_norms(
                 h,0.05,sep.sigma_star,rho,0.45,Lambda);
             const auto b=appendix_b_fixed_map_lipschitz_budget(
@@ -45,8 +46,9 @@ int main(int argc,char**argv){
                <<mult.min_H_minus_isigma<<','<<mult.qmin_H2_plus_sigma2<<','
                <<mult.scalar_cauchy_factor<<','<<mult.log_C_for_g<<','
                <<mult.norms.chi<<','<<mult.norms.zeta<<','
-               <<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','<<b.inverse_finite_k<<','
-               <<b.inverse_finite_prefix_bound<<','<<b.inverse_analytic_tail_bound<<','
+               <<(op.infinite_eta_certified?1:0)<<','<<op.product<<','<<op.mixed_AX_J2<<','
+               <<op.pressure_J1_detaI<<','<<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','
+               <<b.inverse_finite_k<<','<<b.inverse_finite_prefix_bound<<','<<b.inverse_analytic_tail_bound<<','
                <<b.inverse_factorial_K<<','<<b.inverse_envelope_ratio<<','
                <<b.phi_Wstar_Phi<<','<<b.phi_h_background_Phi<<','
                <<b.phi_B_etaAX_u_Phi<<','<<b.phi_B_detaAX_u_Phi<<','
