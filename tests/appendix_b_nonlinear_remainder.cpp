@@ -1,5 +1,5 @@
+#include "appendix_b_analytic_multiplier.hpp"
 #include "appendix_b_fixed_map_budget.hpp"
-#include "appendix_b_multiplier_audit.hpp"
 #include "appendix_b_nonlinear_remainder.hpp"
 #include "appendix_b_parameter_scale.hpp"
 
@@ -57,15 +57,21 @@ int main() {
           brho.mixed_AX_J1 > 0.0 && brho.mixed_AX_J2 > 0.0 &&
           brho.deta_J1 > 0.0 && brho.deta_J2 > 0.0)) return 8;
     const auto sep = appendix_b_separation_audit(p, 0.05, 20.0, 0.05, 0.05, 121);
-    const auto mult = appendix_b_sample_multiplier_norms(
-        std::exp(p.log_h), 0.05, sep.sigma_star, sep.eta0, rho, 6, 1201);
-    if (!(mult.norms.invL > 0.0 && mult.norms.zeta > 0.0 && mult.norms.chi > 0.0) ||
-        !std::isfinite(mult.norms.zeta) || !std::isfinite(mult.norms.chi)) return 9;
-
     const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
+    const auto mult = appendix_b_analytic_multiplier_norms(
+        std::exp(p.log_h), 0.05, sep.sigma_star, rho, 0.45, Lambda);
+    if (!mult.pole_separation_certified || !mult.cauchy_certified ||
+        !(mult.outer_radius > rho) ||
+        !(mult.nearest_chi_zeta_pole_distance > mult.outer_radius) ||
+        !(mult.norms.invL > 0.0 && mult.norms.zeta > 0.0 && mult.norms.chi > 0.0) ||
+        !(mult.scalar_cauchy_factor >= 1.0) ||
+        !std::isfinite(mult.norms.zeta) || !std::isfinite(mult.norms.chi) ||
+        !std::isfinite(mult.log_C_for_g)) return 9;
+
     const double u0_bound = std::exp(scale.max_log_abs_u0_Ymax);
     const auto fixed = appendix_b_fixed_map_lipschitz_budget(
-        brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound, 1.0);
+        brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound,
+        mult.scalar_cauchy_factor);
     if (!fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
     if (!(fixed.inverse_finite_prefix_bound > 1.0 &&
@@ -77,9 +83,13 @@ int main() {
 
     double closing_factor = 0.0;
     double closing_bound = 0.0;
-    for (double factor = 1.0; factor <= 1e12; factor *= 10.0) {
+    for (double factor = 1.0; factor <= 1e14; factor *= 10.0) {
+        const double Ltrial=factor*Lambda;
+        const auto am=appendix_b_analytic_multiplier_norms(
+            std::exp(p.log_h),0.05,sep.sigma_star,rho,0.45,Ltrial);
         const auto trial = appendix_b_fixed_map_lipschitz_budget(
-            brho, mult.norms, std::exp(p.log_h), factor*Lambda, 2.0, 1.1*u0_bound, 1.0);
+            brho, am.norms, std::exp(p.log_h), Ltrial, 2.0, 1.1*u0_bound,
+            am.scalar_cauchy_factor);
         if (trial.contraction_certified) {
             closing_factor = factor;
             closing_bound = trial.contraction_bound;
@@ -87,17 +97,17 @@ int main() {
         }
     }
     if (!(closing_factor > 0.0)) {
-        std::cerr << "full fixed-map audit did not close through 1e12 Lambda factor\n";
+        std::cerr << "analytic-eta fixed-map audit did not close through 1e14 Lambda factor\n";
         return 13;
     }
 
-    std::cout << "Appendix B full fixed map: rho=" << rho
-              << " crudeT=" << fixed.T_bound
+    std::cout << "Appendix B analytic eta fixed map: rho=" << rho
+              << " R=" << mult.outer_radius
+              << " poleDist=" << mult.nearest_chi_zeta_pole_distance
+              << " cauchy=" << mult.scalar_cauchy_factor
+              << " chi=" << mult.norms.chi
+              << " zeta=" << mult.norms.zeta
               << " invFull=" << fixed.inverse_one_plus_T_bound
-              << " invFinite=" << fixed.inverse_finite_prefix_bound
-              << " invTail=" << fixed.inverse_analytic_tail_bound
-              << " K=" << fixed.inverse_factorial_K
-              << " envelopeRatio=" << fixed.inverse_envelope_ratio
               << " contraction=" << fixed.contraction_bound
               << " closingFactor=" << closing_factor
               << " closingBound=" << closing_bound << '\n';
