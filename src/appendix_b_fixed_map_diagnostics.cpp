@@ -21,8 +21,8 @@ int main(int argc,char**argv){
     std::ofstream out(path);
     if(!out){std::cerr<<"failed to open output\n";return 1;}
     out<<std::setprecision(17);
-    out<<"rho,lambda_factor,log_Lambda,analytic_radius,pole_distance,cauchy_factor,log_C_for_g,"
-          "chi_norm,zeta_norm,T_bound,inverse_one_plus_T_bound,"
+    out<<"rho,lambda_factor,log_Lambda,analytic_radius,pole_distance,min_H_pm_isigma,qmin_H2_plus_sigma2,cauchy_factor,log_C_for_g,"
+          "chi_norm,zeta_norm,T_bound,inverse_one_plus_T_bound,inverse_finite_k,"
           "inverse_finite_prefix_bound,inverse_analytic_tail_bound,inverse_factorial_K,inverse_envelope_ratio,"
           "phi_Wstar_Phi,phi_h_background_Phi,phi_B_etaAX_u_Phi,phi_B_detaAX_u_Phi,"
           "phi_h_u_Phi,phi_zeta_u_Phi,phi_Wstar_DXPhi,phi_B_etaAX_u_DXPhi,"
@@ -42,9 +42,10 @@ int main(int argc,char**argv){
                 op,mult.norms,h,Lambda,2.0,1.1*u0,mult.scalar_cauchy_factor);
             out<<rho<<','<<factor<<','<<std::log(Lambda)<<','
                <<mult.outer_radius<<','<<mult.nearest_chi_zeta_pole_distance<<','
+               <<mult.min_H_minus_isigma<<','<<mult.qmin_H2_plus_sigma2<<','
                <<mult.scalar_cauchy_factor<<','<<mult.log_C_for_g<<','
                <<mult.norms.chi<<','<<mult.norms.zeta<<','
-               <<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','
+               <<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','<<b.inverse_finite_k<<','
                <<b.inverse_finite_prefix_bound<<','<<b.inverse_analytic_tail_bound<<','
                <<b.inverse_factorial_K<<','<<b.inverse_envelope_ratio<<','
                <<b.phi_Wstar_Phi<<','<<b.phi_h_background_Phi<<','
