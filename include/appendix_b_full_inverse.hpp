@@ -28,8 +28,6 @@ struct AppendixBFullInverseAudit {
     bool tail_certified{};
 };
 
-// Exact finite-beta B.4 one-step norm ratio for
-// T=(1/2) J_2(chi .) acting on radial degree alpha.
 inline double appendix_b_full_T_degree_step_bound(
     std::size_t alpha,std::size_t nb,double rho,double chi_norm) {
     if (!(rho>0.0) || !(chi_norm>=0.0))
@@ -49,11 +47,9 @@ inline double appendix_b_full_T_degree_step_bound(
     return C;
 }
 
-// The B.4 algebra yields the radial envelope
-//   step_alpha <= K/((alpha+1)(alpha+2)), K=40 ||chi||_{B_rho}.
-// Hence, for a start degree s,
-//   ||T^k||_s <= product_{j=0}^{k-1} K/((s+j+1)(s+j+2)).
-// At s=0 this is K^k/(k!(k+1)!).
+// B.7--B.10 imply the all-beta degree-raising envelope used in the manuscript:
+//   ||T^k F|| <= K^k/[k!(k+1)!] ||F||, K=40 ||chi||_{B_rho},
+// for start radial degree zero, with a smaller denominator for higher starts.
 inline double appendix_b_T_factorial_envelope_K(double chi_norm) {
     if (!(chi_norm>=0.0)) throw std::invalid_argument("chi norm must be nonnegative");
     return 40.0*chi_norm;
@@ -91,10 +87,6 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
         throw std::invalid_argument("invalid Appendix B full inverse audit parameters");
 
     const double K=appendix_b_T_factorial_envelope_K(chi_norm);
-
-    // Regression-check the exact B.4 implementation against the analytic
-    // envelope.  The all-alpha certification comes from the algebraic formula;
-    // this finite scan is a guard against implementation drift.
     double max_ratio=0.0;
     for(std::size_t a=0;a<=envelope_scan;++a){
         const double step=appendix_b_full_T_degree_step_bound(a,nb,rho,chi_norm);
@@ -103,10 +95,6 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
     }
     const bool envelope_ok=max_ratio<=1.0+1e-12;
 
-    // Hybrid finite prefix: exact B.4 steps for starts s<=start_scan, plus an
-    // analytic bound for every omitted start s>=start_scan+1.  Because the
-    // envelope denominator is increasing in s, its maximum on the omitted
-    // starts is attained at s=start_scan+1.
     double finite=0.0;
     double max_unscanned_fraction=0.0;
     bool prefix_ok=envelope_ok;
@@ -119,8 +107,6 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
         prefix_ok=prefix_ok && std::isfinite(global);
     }
 
-    // Analytic Neumann tail in k.  The worst starting radial degree is s=0.
-    // Consecutive factorial terms have ratio K/((k+1)(k+2)), decreasing in k.
     const std::size_t k0=finite_k+1;
     const double first=appendix_b_T_factorial_term(K,k0);
     const double r0=K/(static_cast<double>(k0+1)*static_cast<double>(k0+2));
@@ -130,6 +116,40 @@ inline AppendixBFullInverseAudit appendix_b_full_inverse_audit(
 
     return {finite_k,nb,rho,chi_norm,K,max_ratio,max_unscanned_fraction,
         finite,tail,full,first,r0,envelope_ok,prefix_ok,
+        tail_ok && std::isfinite(full)};
+}
+
+// Infinite-beta version: no finite eta jet enters at any stage. We sum the
+// manuscript factorial envelope itself for k=0..finite_k and majorize the rest
+// using the decreasing consecutive-term ratio. This is deliberately more
+// conservative than the finite-beta prefix but removes eta truncation from the
+// inverse bound completely.
+inline AppendixBFullInverseAudit appendix_b_full_inverse_all_beta_audit(
+    double rho,double chi_norm,std::size_t minimum_prefix=1) {
+    if(!(rho>0.0) || !(chi_norm>0.0))
+        throw std::invalid_argument("invalid all-beta Appendix B inverse parameters");
+    const double K=appendix_b_T_factorial_envelope_K(chi_norm);
+    std::size_t finite_k=minimum_prefix;
+    while(K/(static_cast<double>(finite_k+2)*static_cast<double>(finite_k+3))>=0.5){
+        ++finite_k;
+        if(finite_k>512)
+            throw std::runtime_error("all-beta factorial inverse prefix failed to reach tail ratio <1/2");
+    }
+    double finite=0.0;
+    for(std::size_t k=0;k<=finite_k;++k){
+        const double term=appendix_b_T_factorial_term(K,k);
+        if(!std::isfinite(term))
+            throw std::runtime_error("all-beta factorial inverse prefix overflow");
+        finite+=term;
+    }
+    const std::size_t k0=finite_k+1;
+    const double first=appendix_b_T_factorial_term(K,k0);
+    const double r0=K/(static_cast<double>(k0+1)*static_cast<double>(k0+2));
+    const bool tail_ok=r0<1.0 && std::isfinite(first);
+    const double tail=tail_ok ? first/(1.0-r0) : std::numeric_limits<double>::infinity();
+    const double full=finite+tail;
+    return {finite_k,std::numeric_limits<std::size_t>::max(),rho,chi_norm,K,
+        1.0,1.0,finite,tail,full,first,r0,true,true,
         tail_ok && std::isfinite(full)};
 }
 
