@@ -104,8 +104,6 @@ inline double appendix_b_brho_deta_bound(std::size_t na,std::size_t nb,double rh
     return C;
 }
 
-// Direct finite-beta B.6 family. The flags select
-// J_nu[(d_eta F)(D_X G)], J_nu[F(D_X G)], J_nu[F d_eta G], or J_nu[FG].
 inline double appendix_b_brho_bilinear_Jnu_bound(
     std::size_t na,std::size_t nb,double rho,int nu,
     bool deta_left,bool dx_right,bool deta_right=false,bool average_left=false) {
@@ -167,43 +165,56 @@ struct AppendixBRhoOperatorAudit {
     double AX_product_J2{};
     double AX_DX_J1{};
     double AX_DX_J2{};
+    double AX_deta_J1{};
+    double AX_deta_J2{};
+    double pressure_J1_I{};
+    double pressure_J1_detaI{};
+    double pressure_J1_DXI{};
     bool infinite_eta_certified{};
 };
 
 inline AppendixBRhoOperatorAudit appendix_b_brho_operator_audit(
     std::size_t na=24,std::size_t nb=6,double rho=0.02) {
     if(na<1 || nb<1) throw std::invalid_argument("B-rho audit needs positive truncations");
-    return {na,nb,rho,
-        appendix_b_brho_product_bound(na,nb,rho),
-        appendix_b_brho_DX_bound(na), appendix_b_brho_AX_bound(na),
-        appendix_b_brho_I_bound(na,nb,rho),
-        appendix_b_brho_Jnu_bound(na,nb,rho,1),
-        appendix_b_brho_Jnu_bound(na,nb,rho,2),
-        appendix_b_brho_deta_bound(na,nb,rho),
-        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,false),
-        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,false),
-        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,true),
-        appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true,false,true),
-        appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,true,false,true),
-        false};
+    AppendixBRhoOperatorAudit out;
+    out.radial_order=na; out.eta_order=nb; out.rho=rho;
+    out.product=appendix_b_brho_product_bound(na,nb,rho);
+    out.DX=appendix_b_brho_DX_bound(na); out.AX=appendix_b_brho_AX_bound(na);
+    out.I=appendix_b_brho_I_bound(na,nb,rho);
+    out.J1=appendix_b_brho_Jnu_bound(na,nb,rho,1);
+    out.J2=appendix_b_brho_Jnu_bound(na,nb,rho,2);
+    out.deta=appendix_b_brho_deta_bound(na,nb,rho);
+    out.mixed_J1=appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,false);
+    out.mixed_J2=appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,false);
+    out.mixed_AX_J1=appendix_b_brho_mixed_Jnu_bound(na,nb,rho,1,true);
+    out.mixed_AX_J2=appendix_b_brho_mixed_Jnu_bound(na,nb,rho,2,true);
+    out.product_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false);
+    out.product_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false);
+    out.DX_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true);
+    out.DX_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,true);
+    out.deta_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false,true);
+    out.deta_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false,true);
+    out.AX_product_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,false,false,true);
+    out.AX_product_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,false,false,true);
+    out.AX_DX_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true,false,true);
+    out.AX_DX_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,false,true,false,true);
+    out.AX_deta_J1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,true,false,false,true);
+    out.AX_deta_J2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,true,false,false,true);
+    const double alg=out.product;
+    out.pressure_J1_I=out.J1*out.I*alg;
+    out.pressure_J1_detaI=out.J1*out.I*out.deta*alg;
+    out.pressure_J1_DXI=out.J1*out.DX*out.I*alg;
+    out.infinite_eta_certified=false;
+    return out;
 }
 
-// Infinite-beta majorants corresponding to the convolution mechanism in
-// Appendix B, (B.7)--(B.10).  The elementary p_2 convolution used there is
-//   sum_{r=0}^b 1/((r+1)^2(b-r+1)^2) <= C2/(b+1)^2,
-// and splitting at b/2 gives the explicit all-b constant C2=4*pi^2/3.
-// We deliberately keep a generous factor 16 in the shifted-derivative rows;
-// it absorbs the index shifts in (B.9)--(B.10) uniformly in beta.  These are
-// proof majorants, not fitted finite-beta maxima.
+// Infinite-beta majorants implementing the B.7--B.10 convolution mechanism.
+// The elementary eta convolution obeys, for every beta>=0,
+//   sum_{r=0}^beta 1/((r+1)^2(beta-r+1)^2)
+//       <= C2/(beta+1)^2, C2=4*pi^2/3.
+// Radial sums are bounded separately by explicit polynomial majorants in na.
+// These constants are intentionally generous: they are proof majorants, not
+// finite-beta fitted maxima.
 inline double appendix_b_brho_c2_convolution_constant() {
     constexpr double pi=3.141592653589793238462643383279502884;
     return 4.0*pi*pi/3.0;
@@ -220,29 +231,49 @@ inline AppendixBRhoOperatorAudit appendix_b_brho_infinite_beta_operator_audit(
     const double radial=20.0*n*n;
     const double shifted=16.0*n/rho;
 
-    // B.7: product algebra. B.8: J_nu after an undifferentiated product.
-    // B.9: one eta derivative, retained inside J_nu.
-    // B.10: the mixed eta/radial derivative and A_X variants.
-    const double prod=alg;
-    const double fg1=radial*alg;
-    const double fg2=0.5*radial*alg;
-    const double fdx1=fg1*std::max(1.0,dx);
-    const double fdx2=fg2*std::max(1.0,dx);
-    const double fdeta1=fg1*shifted;
-    const double fdeta2=fg2*shifted;
-    const double mixed1=fdeta1*std::max(1.0,dx);
-    const double mixed2=fdeta2*std::max(1.0,dx);
+    AppendixBRhoOperatorAudit out;
+    out.radial_order=na;
+    out.eta_order=std::numeric_limits<std::size_t>::max();
+    out.rho=rho;
+    out.product=alg;
+    out.DX=dx;
+    out.AX=1.0;
+    // Standalone operators are deliberately unavailable in the all-beta path.
+    out.I=out.J1=out.J2=out.deta=std::numeric_limits<double>::infinity();
 
-    // Standalone I, J_nu and d_eta are intentionally not used in the full-beta
-    // fixed-point budget: the manuscript closes the derivative channels only
-    // after composing with J_nu as in B.6--B.10. Mark them as infinity so a
-    // future accidental use cannot silently reintroduce a finite-beta claim.
-    const double inf=std::numeric_limits<double>::infinity();
-    return {na,std::numeric_limits<std::size_t>::max(),rho,
-        prod,dx,1.0,inf,inf,inf,inf,
-        mixed1,mixed2,mixed1,mixed2,
-        fg1,fg2,fdx1,fdx2,fdeta1,fdeta2,
-        fg1,fg2,fdx1,fdx2,true};
+    // B.8 undifferentiated composite J_nu(FG).
+    out.product_J1=radial*alg;
+    out.product_J2=0.5*radial*alg;
+    // B.9 one eta derivative retained inside J_nu.
+    out.deta_J1=out.product_J1*shifted;
+    out.deta_J2=out.product_J2*shifted;
+    // Derivative omitted / radial derivative variants allowed by B.6.
+    out.DX_J1=out.product_J1*std::max(1.0,dx);
+    out.DX_J2=out.product_J2*std::max(1.0,dx);
+    // B.10 mixed eta/radial derivative.
+    out.mixed_J1=out.deta_J1*std::max(1.0,dx);
+    out.mixed_J2=out.deta_J2*std::max(1.0,dx);
+
+    // A_X only decreases a radial coefficient by 1/(alpha+1), so the same
+    // all-beta majorants are valid for the A_X(F) variants.
+    out.AX_product_J1=out.product_J1;
+    out.AX_product_J2=out.product_J2;
+    out.AX_DX_J1=out.DX_J1;
+    out.AX_DX_J2=out.DX_J2;
+    out.AX_deta_J1=out.deta_J1;
+    out.AX_deta_J2=out.deta_J2;
+    out.mixed_AX_J1=out.mixed_J1;
+    out.mixed_AX_J2=out.mixed_J2;
+
+    // Pressure p=I(g^2 Phi^2).  Keep I inside the actual composites rather
+    // than assigning it a standalone infinite-beta norm. Two radial shifts
+    // are majorized by radial^2; d_eta adds the B.9 shift and D_X I=Y is
+    // bounded by one additional radial-polynomial factor.
+    out.pressure_J1_I=radial*radial*alg;
+    out.pressure_J1_detaI=out.pressure_J1_I*shifted;
+    out.pressure_J1_DXI=out.pressure_J1_I*std::max(1.0,dx);
+    out.infinite_eta_certified=true;
+    return out;
 }
 
 } // namespace nsblowup
