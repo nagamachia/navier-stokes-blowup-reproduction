@@ -18,40 +18,31 @@ find_library(FFTW3_LIBRARY NAMES fftw3 REQUIRED)
 
 add_executable(core_scaling src/core_scaling.cpp)
 enable_project_warnings(core_scaling)
-
 add_executable(fourier_diff_1d src/fourier_diff_1d.cpp)
 enable_project_warnings(fourier_diff_1d)
-
 add_executable(similarity_coordinates src/similarity_coordinates.cpp)
 target_include_directories(similarity_coordinates PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(similarity_coordinates)
-
 add_executable(appendix_a3_diagnostics src/appendix_a3_diagnostics.cpp)
 target_include_directories(appendix_a3_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a3_diagnostics)
-
 add_executable(appendix_a3_global_diagnostics src/appendix_a3_global_diagnostics.cpp)
 target_include_directories(appendix_a3_global_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a3_global_diagnostics)
-
 add_executable(appendix_a4_pressure_diagnostics src/appendix_a4_pressure_diagnostics.cpp)
 target_include_directories(appendix_a4_pressure_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a4_pressure_diagnostics)
-
 add_executable(appendix_a6_a7_diagnostics src/appendix_a6_a7_diagnostics.cpp)
 target_include_directories(appendix_a6_a7_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(appendix_a6_a7_diagnostics)
-
 add_executable(fftw_taylor_green src/fftw_taylor_green.cpp)
 target_include_directories(fftw_taylor_green PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green PRIVATE ${FFTW3_LIBRARY})
 enable_project_warnings(fftw_taylor_green)
-
 add_executable(taylor_green_snapshots src/taylor_green_snapshots.cpp)
 target_include_directories(taylor_green_snapshots PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(taylor_green_snapshots PRIVATE ${FFTW3_LIBRARY})
 enable_project_warnings(taylor_green_snapshots)
-
 add_executable(fftw_taylor_green_3d src/fftw_taylor_green_3d.cpp)
 target_include_directories(fftw_taylor_green_3d PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green_3d PRIVATE ${FFTW3_LIBRARY})
@@ -59,104 +50,81 @@ enable_project_warnings(fftw_taylor_green_3d)
 
 add_executable(test_core_scaling tests/test_core_scaling.cpp)
 enable_project_warnings(test_core_scaling)
-
 add_executable(test_similarity_coordinates tests/similarity_coordinates.cpp)
 target_include_directories(test_similarity_coordinates PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_similarity_coordinates)
-
 add_executable(test_similarity_operators tests/similarity_operators.cpp)
 target_include_directories(test_similarity_operators PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_similarity_operators)
-
 add_executable(test_leading_profile_relations tests/leading_profile_relations.cpp)
 target_include_directories(test_leading_profile_relations PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_leading_profile_relations)
-
 add_executable(test_leading_stress tests/leading_stress.cpp)
 target_include_directories(test_leading_stress PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_leading_stress)
-
 add_executable(test_leading_field_axis tests/leading_field_axis.cpp)
 target_include_directories(test_leading_field_axis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_leading_field_axis)
-
 add_executable(test_moment_corrections tests/moment_corrections.cpp)
 target_include_directories(test_moment_corrections PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_moment_corrections)
-
 add_executable(test_profile_moment_patch tests/profile_moment_patch.cpp)
 target_include_directories(test_profile_moment_patch PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_profile_moment_patch)
-
 add_executable(test_outer_profile_stages tests/outer_profile_stages.cpp)
 target_include_directories(test_outer_profile_stages PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_outer_profile_stages)
-
 add_executable(test_appendix_a3_closure tests/appendix_a3_closure.cpp)
 target_include_directories(test_appendix_a3_closure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a3_closure)
-
 add_executable(test_appendix_a3_global tests/appendix_a3_global.cpp)
 target_include_directories(test_appendix_a3_global PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a3_global)
-
 add_executable(test_appendix_a4_pressure tests/appendix_a4_pressure.cpp)
 target_include_directories(test_appendix_a4_pressure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a4_pressure)
-
 add_executable(test_appendix_a6_heat tests/appendix_a6_heat.cpp)
 target_include_directories(test_appendix_a6_heat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a6_heat)
-
 add_executable(test_appendix_a7_heat_compensation tests/appendix_a7_heat_compensation.cpp)
 target_include_directories(test_appendix_a7_heat_compensation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_heat_compensation)
-
 add_executable(test_appendix_a7_full_schedule tests/appendix_a7_full_schedule.cpp)
 target_include_directories(test_appendix_a7_full_schedule PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_full_schedule)
-
 add_executable(test_appendix_a7_schedule_scales tests/appendix_a7_schedule_scales.cpp)
 target_include_directories(test_appendix_a7_schedule_scales PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_schedule_scales)
-
 add_executable(test_appendix_a7_log_discrepancy tests/appendix_a7_log_discrepancy.cpp)
 target_include_directories(test_appendix_a7_log_discrepancy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_log_discrepancy)
-
 add_executable(test_appendix_a7_log_compensation tests/appendix_a7_log_compensation.cpp)
 target_include_directories(test_appendix_a7_log_compensation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_log_compensation)
-
 add_executable(test_appendix_a7_full_recovery tests/appendix_a7_full_recovery.cpp)
 target_include_directories(test_appendix_a7_full_recovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_a7_full_recovery)
-
 add_executable(test_appendix_b_axis tests/appendix_b_axis.cpp)
 target_include_directories(test_appendix_b_axis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_b_axis)
-
 add_executable(test_appendix_b_coefficient_space tests/appendix_b_coefficient_space.cpp)
 target_include_directories(test_appendix_b_coefficient_space PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_b_coefficient_space)
-
 add_executable(test_appendix_b_contraction tests/appendix_b_contraction.cpp)
 target_include_directories(test_appendix_b_contraction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_b_contraction)
-
 add_executable(test_appendix_b_nonlinear_remainder tests/appendix_b_nonlinear_remainder.cpp)
 target_include_directories(test_appendix_b_nonlinear_remainder PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 enable_project_warnings(test_appendix_b_nonlinear_remainder)
-
+add_executable(test_appendix_b_proposition_b2_certificate tests/appendix_b_proposition_b2_certificate.cpp)
+target_include_directories(test_appendix_b_proposition_b2_certificate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+enable_project_warnings(test_appendix_b_proposition_b2_certificate)
 add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
 enable_project_warnings(test_divergence_free_projection)
-
 add_executable(test_dealiasing_2_3 tests/dealiasing_2_3.cpp)
 enable_project_warnings(test_dealiasing_2_3)
-
 add_executable(test_viscous_decay tests/viscous_decay.cpp)
 enable_project_warnings(test_viscous_decay)
-
 add_executable(test_taylor_green tests/taylor_green_regression.cpp)
 enable_project_warnings(test_taylor_green)
 
@@ -183,20 +151,12 @@ add_test(NAME appendix_b_axis_regression COMMAND test_appendix_b_axis)
 add_test(NAME appendix_b_coefficient_space_regression COMMAND test_appendix_b_coefficient_space)
 add_test(NAME appendix_b_contraction_regression COMMAND test_appendix_b_contraction)
 add_test(NAME appendix_b_nonlinear_remainder_regression COMMAND test_appendix_b_nonlinear_remainder)
+add_test(NAME appendix_b_proposition_b2_certificate_regression COMMAND test_appendix_b_proposition_b2_certificate)
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
 add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
 add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
 add_test(NAME viscous_decay_regression COMMAND test_viscous_decay)
 add_test(NAME taylor_green_regression COMMAND test_taylor_green)
-add_test(
-    NAME fftw_taylor_green_smoke
-    COMMAND fftw_taylor_green 6 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_smoke.csv
-)
-add_test(
-    NAME taylor_green_snapshot_smoke
-    COMMAND taylor_green_snapshots 8 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/taylor_green_snapshots_smoke.csv
-)
-add_test(
-    NAME fftw_taylor_green_3d_smoke
-    COMMAND fftw_taylor_green_3d 8 0.02 0.01 0.05 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_3d_smoke.csv 3
-)
+add_test(NAME fftw_taylor_green_smoke COMMAND fftw_taylor_green 6 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_smoke.csv)
+add_test(NAME taylor_green_snapshot_smoke COMMAND taylor_green_snapshots 8 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/taylor_green_snapshots_smoke.csv)
+add_test(NAME fftw_taylor_green_3d_smoke COMMAND fftw_taylor_green_3d 8 0.02 0.01 0.05 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_3d_smoke.csv 3)
