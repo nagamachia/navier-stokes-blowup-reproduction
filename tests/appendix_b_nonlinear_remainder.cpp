@@ -60,6 +60,15 @@ int main() {
     const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
     const auto mult = appendix_b_analytic_multiplier_norms(
         std::exp(p.log_h), 0.05, sep.sigma_star, rho, 0.45, Lambda);
+    std::cerr << "analytic eta audit: sigma=" << sep.sigma_star
+              << " R=" << mult.outer_radius
+              << " pole=" << mult.nearest_chi_zeta_pole_distance
+              << " m-=" << mult.min_H_minus_isigma
+              << " m+=" << mult.min_H_plus_isigma
+              << " F=" << mult.scalar_cauchy_factor
+              << " chi=" << mult.norms.chi
+              << " zeta=" << mult.norms.zeta
+              << " logC=" << mult.log_C_for_g << '\n';
     if (!mult.pole_separation_certified || !mult.cauchy_certified ||
         !(mult.outer_radius > rho) ||
         !(mult.nearest_chi_zeta_pole_distance > mult.outer_radius) ||
@@ -72,6 +81,12 @@ int main() {
     const auto fixed = appendix_b_fixed_map_lipschitz_budget(
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound,
         mult.scalar_cauchy_factor);
+    std::cerr << "fixed map: inv=" << fixed.inverse_one_plus_T_bound
+              << " finite=" << fixed.inverse_finite_prefix_bound
+              << " tail=" << fixed.inverse_analytic_tail_bound
+              << " K=" << fixed.inverse_factorial_K
+              << " env=" << fixed.inverse_envelope_ratio
+              << " contraction=" << fixed.contraction_bound << '\n';
     if (!fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
     if (!(fixed.inverse_finite_prefix_bound > 1.0 &&
