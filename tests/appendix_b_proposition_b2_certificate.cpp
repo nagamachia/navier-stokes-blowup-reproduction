@@ -2,6 +2,7 @@
 #include "appendix_b_axis.hpp"
 #include "appendix_b_brho.hpp"
 #include "appendix_b_parameter_scale.hpp"
+#include "appendix_b_pressure_analytic.hpp"
 #include "appendix_b_proposition_b2_certificate.hpp"
 
 #include <cmath>
@@ -15,13 +16,26 @@ int main(){
     const auto scale=appendix_b_lambda_scale_audit(p,0.05,4.1,0.05,20.0,0.05,0.05,81);
     const double h=std::exp(p.log_h);
     const double Lambda0=std::exp(scale.log_Lambda_for_U_tolerance);
-    const double u0=std::exp(scale.max_log_abs_u0_Ymax);
     const auto op=appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
     if(!op.infinite_eta_certified || !op.infinite_radial_certified) return 1;
 
+    // The center is now certified in the same analytic B-rho space.  Use an
+    // inner stadium matching the fixed-multiplier radius and a larger pressure
+    // stadium for the Cauchy derivative bound on Pi0_eta.
+    const auto center=appendix_b_Z_over_L_analytic_audit(
+        p,0.05,rho,4.0*rho,8.0*rho,4.1,20.0,0.05,0.02);
+    if(!center.certified || !center.pressure.certified) return 5;
+    const double u0=std::exp(center.log_u0_brho_Ymax);
+    if(!(u0>0.0) || !std::isfinite(u0)) return 6;
+
+    // Cross-check: the new analytic center bound must dominate the former
+    // real-axis sampled leading-center scale.
+    const double sampled_u0=std::exp(scale.max_log_abs_u0_Ymax);
+    if(!(u0>=sampled_u0)) return 7;
+
     AppendixBPropositionB2Certificate winner{};
     double winner_factor=0.0;
-    for(double factor=1.0; factor<=1e40; factor*=10.0){
+    for(double factor=1.0; factor<=1e60; factor*=10.0){
         const double Lambda=Lambda0*factor;
         if(!std::isfinite(Lambda)) break;
         const auto am=appendix_b_analytic_multiplier_norms(h,0.05,sep.sigma_star,rho,0.45,Lambda);
@@ -36,7 +50,10 @@ int main(){
        !(winner.invariant_lhs<=winner.ball_radius) ||
        !(winner.invariant_margin>=0.0) ||
        !std::isfinite(winner.source.source_norm)) return 4;
-    std::cout << "Appendix B.2 certificate: factor=" << winner_factor
+    std::cout << "Appendix B.2 analytic-center certificate: factor=" << winner_factor
+              << " log_u0=" << center.log_u0_brho_Ymax
+              << " pi=" << center.pressure.pi0_brho_norm
+              << " dpi=" << center.pressure.dpi0_brho_norm
               << " q=" << winner.lipschitz.contraction_bound
               << " source=" << winner.source.source_norm
               << " radius=" << winner.ball_radius
