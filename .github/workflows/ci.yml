@@ -50,6 +50,8 @@ jobs:
           /tmp/appendix_b_diagnostics results/reference/appendix_b_scale.csv
           g++ -std=c++20 -O2 -Iinclude src/appendix_b_brho_diagnostics.cpp -o /tmp/appendix_b_brho_diagnostics
           /tmp/appendix_b_brho_diagnostics results/reference/appendix_b_brho.csv
+          g++ -std=c++20 -O2 -Iinclude src/appendix_b_fixed_map_diagnostics.cpp -o /tmp/appendix_b_fixed_map_diagnostics
+          /tmp/appendix_b_fixed_map_diagnostics results/reference/appendix_b_fixed_map.csv
           python3 scripts/generate_artifacts.py \
             results/reference/taylor_green_n16.csv \
             results/reference/similarity_coordinates.csv
