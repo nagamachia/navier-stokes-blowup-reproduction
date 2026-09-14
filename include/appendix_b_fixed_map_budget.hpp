@@ -12,7 +12,7 @@
 namespace nsblowup {
 
 struct AppendixBFixedMapBudget {
-    double T_bound{}; // crude one-step diagnostic only
+    double T_bound{};
     double inverse_one_plus_T_bound{};
     std::size_t inverse_finite_k{};
     double inverse_finite_prefix_bound{};
@@ -48,6 +48,7 @@ struct AppendixBFixedMapBudget {
     double contraction_bound{};
     bool inverse_certified{};
     bool infinite_eta_certified{};
+    bool infinite_radial_certified{};
     bool contraction_certified{};
 };
 
@@ -65,10 +66,6 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
 
     const double C=op.product;
     const double D=0.5-h;
-
-    // In the all-beta path every derivative-sensitive term enters only through
-    // one of the B.8--B.10 composite constants stored in op. No finite eta jet
-    // or standalone d_eta/J_nu/I norm is consulted.
     const double AXprod2=op.AX_product_J2;
     const double AXdx2=op.AX_DX_J2;
     const double AXdeta2=op.AX_deta_J2;
@@ -76,7 +73,11 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
 
     const double t=0.5*op.product_J2*m.chi;
     AppendixBFullInverseAudit inv_audit;
-    if(op.infinite_eta_certified) {
+    if(op.infinite_eta_certified && op.infinite_radial_certified) {
+        // The factorial envelope already controls every starting radial degree,
+        // so the prefix length is only a summation split, not an alpha cutoff.
+        inv_audit=appendix_b_full_inverse_all_beta_audit(op.rho,m.chi,1);
+    } else if(op.infinite_eta_certified) {
         inv_audit=appendix_b_full_inverse_all_beta_audit(op.rho,m.chi,op.radial_order);
     } else {
         const double K=appendix_b_T_factorial_envelope_K(m.chi);
@@ -105,10 +106,10 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     out.inverse_envelope_ratio=inv_audit.max_envelope_ratio;
     out.inverse_certified=inv_ok;
     out.infinite_eta_certified=op.infinite_eta_certified;
+    out.infinite_radial_certified=op.infinite_radial_certified;
 
     const double pair_uPhi=Phi_bound+u_bound;
 
-    // ---- Phi map: (1+T)^-1 J2 R1 /(2 Lambda) ----
     out.phi_Wstar_Phi=outer1*op.product_J2*m.Wstar;
     out.phi_h_background_Phi=outer1*op.product_J2*h*m.one_minus_2etaUstar;
     out.phi_B_etaAX_u_Phi=outer1*(2.0*D/Lambda)*C*m.eta*AXprod2*pair_uPhi;
@@ -126,7 +127,6 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
         out.phi_zeta_u_Phi+out.phi_Wstar_DXPhi+out.phi_B_etaAX_u_DXPhi+
         out.phi_B_detaAX_u_DXPhi+out.phi_Hstar_detaPhi+out.phi_u_detaPhi;
 
-    // ---- u map: J1 R2 /(2 Lambda) ----
     out.u_linear=outer2*op.product_J1*m.linear_u;
     out.u_quadratic=outer2*(2.0*(0.5+h)/Lambda)*C*m.eta*op.product_J1*(2.0*u_bound);
     out.u_Wstar_DXu=outer2*op.DX_J1*m.Wstar;
@@ -135,9 +135,6 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     out.u_Hstar_detau=outer2*op.deta_J1*m.Hstar;
     out.u_u_detau=outer2*(1.0/Lambda)*C*m.d*op.deta_J1*(2.0*u_bound);
 
-    // Pressure channel: p=I(g^2 Phi^2).  In the all-beta audit I never appears
-    // by itself; the three actual composites J1 I, J1 d_eta I and J1 D_X I
-    // are bounded directly by the B.7--B.10 convolution majorants.
     const double pressure_source_lip=2.0*C*C*C*g_bound*g_bound*Phi_bound;
     out.u_pressure_p=outer2*C*m.Aeta4*op.pressure_J1_I*pressure_source_lip;
     out.u_pressure_peta=outer2*C*m.d*op.pressure_J1_detaI*pressure_source_lip;
@@ -147,7 +144,8 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
         out.u_B_etaAX_u_DXu+out.u_B_detaAX_u_DXu+out.u_Hstar_detau+
         out.u_u_detau+out.u_pressure_p+out.u_pressure_peta+out.u_pressure_DXp;
     out.contraction_bound=std::max(out.M_phi_map,out.M_u_map);
-    out.contraction_certified=inv_ok && std::isfinite(out.contraction_bound) &&
+    out.contraction_certified=inv_ok && op.infinite_eta_certified &&
+        op.infinite_radial_certified && std::isfinite(out.contraction_bound) &&
         out.contraction_bound<1.0;
     return out;
 }
