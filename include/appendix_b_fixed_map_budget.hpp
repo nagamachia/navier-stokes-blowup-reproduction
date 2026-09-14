@@ -69,10 +69,12 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     const double AXdeta2=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,2,true,false,false,true);
     const double AXdx1=appendix_b_brho_bilinear_Jnu_bound(na,nb,rho,1,false,true,false,true);
 
-    // The crude one-step norm can be >1.  The inverse instead uses an exact
-    // finite Neumann prefix and the analytic factorial radial tail.
+    // The crude one-step norm can be >1. The inverse instead uses an exact
+    // finite Neumann prefix and the analytic factorial radial tail.  The
+    // implementation-regression scan stops at alpha=128 to stay well above
+    // the finite prefix while avoiding direct-double underflow of 20^{-alpha}.
     const double t=0.5*op.product_J2*m.chi;
-    const auto inv_audit=appendix_b_full_inverse_audit(na,nb,rho,m.chi,64,256);
+    const auto inv_audit=appendix_b_full_inverse_audit(na,nb,rho,m.chi,64,128);
     const double inv=inv_audit.full_inverse_bound;
     const bool inv_ok=inv_audit.tail_certified && std::isfinite(inv) && inv>0.0;
 
@@ -93,18 +95,13 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     // ---- Phi map: (1+T)^-1 J2 R1 /(2 Lambda) ----
     out.phi_Wstar_Phi=outer1*op.product_J2*m.Wstar;
     out.phi_h_background_Phi=outer1*op.product_J2*h*m.one_minus_2etaUstar;
-
-    // B=-2D eta A_X(u)-d d_eta A_X(u).
     out.phi_B_etaAX_u_Phi=outer1*(2.0*D/Lambda)*C*m.eta*AXprod2*pair_uPhi;
     out.phi_B_detaAX_u_Phi=outer1*(1.0/Lambda)*C*m.d*AXdeta2*pair_uPhi;
     out.phi_h_u_Phi=outer1*(2.0*h/Lambda)*C*m.eta*op.product_J2*pair_uPhi;
     out.phi_zeta_u_Phi=outer1*C*m.d*m.zeta*op.product_J2*pair_uPhi;
-
     out.phi_Wstar_DXPhi=outer1*op.DX_J2*m.Wstar;
     out.phi_B_etaAX_u_DXPhi=outer1*(2.0*D/Lambda)*C*m.eta*AXdx2*pair_uPhi;
-    // Direct B.6: J2[(d_eta A_X u)(D_X Phi)].
     out.phi_B_detaAX_u_DXPhi=outer1*(1.0/Lambda)*C*m.d*op.mixed_AX_J2*pair_uPhi;
-
     out.phi_Hstar_detaPhi=outer1*op.deta_J2*m.Hstar;
     out.phi_u_detaPhi=outer1*(1.0/Lambda)*C*m.d*op.deta_J2*pair_uPhi;
 
@@ -118,12 +115,10 @@ inline AppendixBFixedMapBudget appendix_b_fixed_map_lipschitz_budget(
     out.u_quadratic=outer2*(2.0*(0.5+h)/Lambda)*C*m.eta*op.product_J1*(2.0*u_bound);
     out.u_Wstar_DXu=outer2*op.DX_J1*m.Wstar;
     out.u_B_etaAX_u_DXu=outer2*(2.0*D/Lambda)*C*m.eta*AXdx1*(2.0*u_bound);
-    // Direct B.6: J1[(d_eta A_X u)(D_X u)].
     out.u_B_detaAX_u_DXu=outer2*(1.0/Lambda)*C*m.d*op.mixed_AX_J1*(2.0*u_bound);
     out.u_Hstar_detau=outer2*op.deta_J1*m.Hstar;
     out.u_u_detau=outer2*(1.0/Lambda)*C*m.d*op.deta_J1*(2.0*u_bound);
 
-    // Pressure terms remain conservative; they are not the mixed B.6 products.
     const double Lp=2.0*op.I*C*C*C*g_bound*g_bound*Phi_bound;
     out.u_pressure_p=outer2*op.J1*C*m.Aeta4*Lp;
     out.u_pressure_peta=outer2*op.J1*C*m.d*op.deta*Lp;
