@@ -68,7 +68,12 @@ int main() {
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound, 1.0);
     if (!fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
-    if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0)) return 11;
+    if (!(fixed.inverse_finite_prefix_bound > 1.0 &&
+          fixed.inverse_analytic_tail_bound >= 0.0 &&
+          fixed.inverse_one_plus_T_bound >= fixed.inverse_finite_prefix_bound &&
+          fixed.inverse_factorial_K > 0.0 &&
+          fixed.inverse_envelope_ratio <= 1.0 + 1e-12)) return 11;
+    if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0)) return 12;
 
     double closing_factor = 0.0;
     double closing_bound = 0.0;
@@ -82,15 +87,17 @@ int main() {
         }
     }
     if (!(closing_factor > 0.0)) {
-        std::cerr << "direct fixed-map audit did not close through 1e12 Lambda factor\n";
-        return 12;
+        std::cerr << "full fixed-map audit did not close through 1e12 Lambda factor\n";
+        return 13;
     }
 
-    std::cout << "Appendix B direct fixed map: rho=" << rho
+    std::cout << "Appendix B full fixed map: rho=" << rho
               << " crudeT=" << fixed.T_bound
-              << " inv=" << fixed.inverse_one_plus_T_bound
-              << " Mphi=" << fixed.M_phi_map
-              << " Mu=" << fixed.M_u_map
+              << " invFull=" << fixed.inverse_one_plus_T_bound
+              << " invFinite=" << fixed.inverse_finite_prefix_bound
+              << " invTail=" << fixed.inverse_analytic_tail_bound
+              << " K=" << fixed.inverse_factorial_K
+              << " envelopeRatio=" << fixed.inverse_envelope_ratio
               << " contraction=" << fixed.contraction_bound
               << " closingFactor=" << closing_factor
               << " closingBound=" << closing_bound << '\n';
