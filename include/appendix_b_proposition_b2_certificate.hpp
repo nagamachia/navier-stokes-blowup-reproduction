@@ -70,12 +70,14 @@ struct AppendixBPropositionB2Certificate {
     bool inverse_certified{};
     bool contraction_certified{};
     bool invariant_ball_certified{};
+    bool analytic_center_certified{};
     bool proposition_b2_certificate{};
 };
 
 inline AppendixBPropositionB2Certificate appendix_b_proposition_b2_certificate(
     const AppendixBRhoOperatorAudit& op,const AppendixBMultiplierNorms& m,
-    double h,double Lambda,double u0_norm_bound,double g_bound=1.0) {
+    double h,double Lambda,double u0_norm_bound,double g_bound=1.0,
+    bool analytic_center_certified=false) {
     if(!op.infinite_eta_certified || !op.infinite_radial_certified)
         throw std::invalid_argument("Proposition B.2 certificate requires infinite-alpha-beta operators");
     const auto ia=appendix_b_full_inverse_all_beta_audit(op.rho,m.chi);
@@ -102,9 +104,10 @@ inline AppendixBPropositionB2Certificate appendix_b_proposition_b2_certificate(
     const double margin=r-lhs;
     const bool invball=std::isfinite(lhs) && lhs<=r && lip.contraction_bound<1.0;
     const bool full=op.infinite_eta_certified && op.infinite_radial_certified &&
-        lip.inverse_certified && lip.contraction_certified && invball;
+        lip.inverse_certified && lip.contraction_certified && invball && analytic_center_certified;
     return {Lambda,Phi0,u0_norm_bound,r,Pb,ub,src,lip,lhs,margin,
-        true,lip.inverse_certified,lip.contraction_certified,invball,full};
+        true,lip.inverse_certified,lip.contraction_certified,invball,
+        analytic_center_certified,full};
 }
 
 } // namespace nsblowup
