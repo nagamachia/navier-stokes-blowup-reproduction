@@ -22,7 +22,7 @@ int main(int argc,char**argv){
     if(!out){std::cerr<<"failed to open output\n";return 1;}
     out<<std::setprecision(17);
     out<<"rho,lambda_factor,log_Lambda,analytic_radius,pole_distance,min_H_pm_isigma,qmin_H2_plus_sigma2,cauchy_factor,log_C_for_g,"
-          "chi_norm,zeta_norm,infinite_eta,product_bound,mixed_AX_J2,pressure_J1_detaI,T_bound,"
+          "chi_norm,zeta_norm,infinite_eta,infinite_alpha,product_bound,mixed_AX_J2,pressure_J1_detaI,T_bound,"
           "inverse_one_plus_T_bound,inverse_finite_k,inverse_finite_prefix_bound,inverse_analytic_tail_bound,"
           "inverse_factorial_K,inverse_envelope_ratio,phi_Wstar_Phi,phi_h_background_Phi,"
           "phi_B_etaAX_u_Phi,phi_B_detaAX_u_Phi,phi_h_u_Phi,phi_zeta_u_Phi,phi_Wstar_DXPhi,"
@@ -33,7 +33,7 @@ int main(int argc,char**argv){
 
     const double factors[]={1.0,1e2,1e4,1e6,1e8,1e10,1e12,1e14,1e16,1e18,1e20,1e24,1e28,1e32,1e36,1e40};
     for(double rho:{1e-5,2e-5,5e-5,1e-4,2e-4}){
-        const auto op=appendix_b_brho_infinite_beta_operator_audit(18,rho);
+        const auto op=appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
         for(double factor:factors){
             const double Lambda=Lambda0*factor;
             if(!std::isfinite(Lambda)) continue;
@@ -46,8 +46,9 @@ int main(int argc,char**argv){
                <<mult.min_H_minus_isigma<<','<<mult.qmin_H2_plus_sigma2<<','
                <<mult.scalar_cauchy_factor<<','<<mult.log_C_for_g<<','
                <<mult.norms.chi<<','<<mult.norms.zeta<<','
-               <<(op.infinite_eta_certified?1:0)<<','<<op.product<<','<<op.mixed_AX_J2<<','
-               <<op.pressure_J1_detaI<<','<<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','
+               <<(op.infinite_eta_certified?1:0)<<','<<(op.infinite_radial_certified?1:0)<<','
+               <<op.product<<','<<op.mixed_AX_J2<<','<<op.pressure_J1_detaI<<','
+               <<b.T_bound<<','<<b.inverse_one_plus_T_bound<<','
                <<b.inverse_finite_k<<','<<b.inverse_finite_prefix_bound<<','<<b.inverse_analytic_tail_bound<<','
                <<b.inverse_factorial_K<<','<<b.inverse_envelope_ratio<<','
                <<b.phi_Wstar_Phi<<','<<b.phi_h_background_Phi<<','
