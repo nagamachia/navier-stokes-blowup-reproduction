@@ -52,23 +52,22 @@ int main() {
         !(scale.log_Lambda_for_U_tolerance > 2.0 * p.log_Pstar)) return 7;
 
     constexpr double rho = 1e-5;
-    const auto brho = appendix_b_brho_operator_audit(18, 6, rho);
-    if (!(brho.product > 0.0 && brho.J1 > 0.0 && brho.J2 > 0.0 &&
+    const auto brho = appendix_b_brho_infinite_beta_operator_audit(18, rho);
+    if (!brho.infinite_eta_certified ||
+        !(brho.product > 0.0 && brho.product_J1 > 0.0 && brho.product_J2 > 0.0 &&
           brho.mixed_AX_J1 > 0.0 && brho.mixed_AX_J2 > 0.0 &&
-          brho.deta_J1 > 0.0 && brho.deta_J2 > 0.0)) return 8;
+          brho.deta_J1 > 0.0 && brho.deta_J2 > 0.0 &&
+          brho.pressure_J1_I > 0.0 && brho.pressure_J1_detaI > 0.0 &&
+          brho.pressure_J1_DXI > 0.0)) return 8;
+    // Standalone eta-sensitive operators are deliberately unavailable in the
+    // all-beta proof path. Their actual composites above must be used instead.
+    if (std::isfinite(brho.I) || std::isfinite(brho.J1) ||
+        std::isfinite(brho.J2) || std::isfinite(brho.deta)) return 14;
+
     const auto sep = appendix_b_separation_audit(p, 0.05, 20.0, 0.05, 0.05, 121);
     const double Lambda = std::exp(scale.log_Lambda_for_U_tolerance);
     const auto mult = appendix_b_analytic_multiplier_norms(
         std::exp(p.log_h), 0.05, sep.sigma_star, rho, 0.45, Lambda);
-    std::cerr << "analytic eta audit: sigma=" << sep.sigma_star
-              << " R=" << mult.outer_radius
-              << " pole=" << mult.nearest_chi_zeta_pole_distance
-              << " m-=" << mult.min_H_minus_isigma
-              << " m+=" << mult.min_H_plus_isigma
-              << " F=" << mult.scalar_cauchy_factor
-              << " chi=" << mult.norms.chi
-              << " zeta=" << mult.norms.zeta
-              << " logC=" << mult.log_C_for_g << '\n';
     if (!mult.pole_separation_certified || !mult.cauchy_certified ||
         !(mult.outer_radius > rho) ||
         !(mult.nearest_chi_zeta_pole_distance > mult.outer_radius) ||
@@ -81,25 +80,28 @@ int main() {
     const auto fixed = appendix_b_fixed_map_lipschitz_budget(
         brho, mult.norms, std::exp(p.log_h), Lambda, 2.0, 1.1*u0_bound,
         mult.scalar_cauchy_factor);
-    std::cerr << "fixed map: inv=" << fixed.inverse_one_plus_T_bound
-              << " finite=" << fixed.inverse_finite_prefix_bound
-              << " tail=" << fixed.inverse_analytic_tail_bound
+    std::cerr << "all-beta fixed map: product=" << brho.product
+              << " mixedAX2=" << brho.mixed_AX_J2
+              << " pressureDeta=" << brho.pressure_J1_detaI
+              << " inv=" << fixed.inverse_one_plus_T_bound
               << " K=" << fixed.inverse_factorial_K
-              << " env=" << fixed.inverse_envelope_ratio
               << " contraction=" << fixed.contraction_bound << '\n';
-    if (!fixed.inverse_certified || !(fixed.inverse_one_plus_T_bound > 0.0) ||
+    if (!fixed.infinite_eta_certified || !fixed.inverse_certified ||
+        !(fixed.inverse_one_plus_T_bound > 0.0) ||
         !(fixed.contraction_bound > 0.0) || !std::isfinite(fixed.contraction_bound)) return 10;
     if (!(fixed.inverse_finite_prefix_bound > 1.0 &&
           fixed.inverse_analytic_tail_bound >= 0.0 &&
           fixed.inverse_one_plus_T_bound >= fixed.inverse_finite_prefix_bound &&
           fixed.inverse_factorial_K > 0.0 &&
           fixed.inverse_envelope_ratio <= 1.0 + 1e-12)) return 11;
-    if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0)) return 12;
+    if (!(fixed.phi_B_detaAX_u_DXPhi > 0.0 && fixed.u_B_detaAX_u_DXu > 0.0 &&
+          fixed.u_pressure_peta > 0.0)) return 12;
 
     double closing_factor = 0.0;
     double closing_bound = 0.0;
-    for (double factor = 1.0; factor <= 1e14; factor *= 10.0) {
+    for (double factor = 1.0; factor <= 1e40; factor *= 10.0) {
         const double Ltrial=factor*Lambda;
+        if(!std::isfinite(Ltrial)) break;
         const auto am=appendix_b_analytic_multiplier_norms(
             std::exp(p.log_h),0.05,sep.sigma_star,rho,0.45,Ltrial);
         const auto trial = appendix_b_fixed_map_lipschitz_budget(
@@ -112,14 +114,12 @@ int main() {
         }
     }
     if (!(closing_factor > 0.0)) {
-        std::cerr << "analytic-eta fixed-map audit did not close through 1e14 Lambda factor\n";
+        std::cerr << "all-beta fixed-map audit did not close through 1e40 Lambda factor\n";
         return 13;
     }
 
-    std::cout << "Appendix B analytic eta fixed map: rho=" << rho
+    std::cout << "Appendix B all-beta fixed map: rho=" << rho
               << " R=" << mult.outer_radius
-              << " poleDist=" << mult.nearest_chi_zeta_pole_distance
-              << " cauchy=" << mult.scalar_cauchy_factor
               << " chi=" << mult.norms.chi
               << " zeta=" << mult.norms.zeta
               << " invFull=" << fixed.inverse_one_plus_T_bound
