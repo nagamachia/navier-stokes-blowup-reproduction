@@ -1,21 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 project(navier_stokes_blowup_reproduction LANGUAGES CXX)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 enable_testing()
-
 function(enable_project_warnings target)
-    target_compile_options(${target} PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
-    )
+ target_compile_options(${target} PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)
 endfunction()
-
 find_path(FFTW3_INCLUDE_DIR fftw3.h REQUIRED)
 find_library(FFTW3_LIBRARY NAMES fftw3 REQUIRED)
-
 add_executable(core_scaling src/core_scaling.cpp)
 enable_project_warnings(core_scaling)
 add_executable(fourier_diff_1d src/fourier_diff_1d.cpp)
@@ -48,123 +41,50 @@ target_include_directories(fftw_taylor_green_3d PRIVATE ${FFTW3_INCLUDE_DIR})
 target_link_libraries(fftw_taylor_green_3d PRIVATE ${FFTW3_LIBRARY})
 enable_project_warnings(fftw_taylor_green_3d)
 
-add_executable(test_core_scaling tests/test_core_scaling.cpp)
-enable_project_warnings(test_core_scaling)
-add_executable(test_similarity_coordinates tests/similarity_coordinates.cpp)
-target_include_directories(test_similarity_coordinates PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_similarity_coordinates)
-add_executable(test_similarity_operators tests/similarity_operators.cpp)
-target_include_directories(test_similarity_operators PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_similarity_operators)
-add_executable(test_leading_profile_relations tests/leading_profile_relations.cpp)
-target_include_directories(test_leading_profile_relations PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_leading_profile_relations)
-add_executable(test_leading_stress tests/leading_stress.cpp)
-target_include_directories(test_leading_stress PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_leading_stress)
-add_executable(test_leading_field_axis tests/leading_field_axis.cpp)
-target_include_directories(test_leading_field_axis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_leading_field_axis)
-add_executable(test_moment_corrections tests/moment_corrections.cpp)
-target_include_directories(test_moment_corrections PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_moment_corrections)
-add_executable(test_profile_moment_patch tests/profile_moment_patch.cpp)
-target_include_directories(test_profile_moment_patch PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_profile_moment_patch)
-add_executable(test_outer_profile_stages tests/outer_profile_stages.cpp)
-target_include_directories(test_outer_profile_stages PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_outer_profile_stages)
-add_executable(test_appendix_a3_closure tests/appendix_a3_closure.cpp)
-target_include_directories(test_appendix_a3_closure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a3_closure)
-add_executable(test_appendix_a3_global tests/appendix_a3_global.cpp)
-target_include_directories(test_appendix_a3_global PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a3_global)
-add_executable(test_appendix_a4_pressure tests/appendix_a4_pressure.cpp)
-target_include_directories(test_appendix_a4_pressure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a4_pressure)
-add_executable(test_appendix_a6_heat tests/appendix_a6_heat.cpp)
-target_include_directories(test_appendix_a6_heat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a6_heat)
-add_executable(test_appendix_a7_heat_compensation tests/appendix_a7_heat_compensation.cpp)
-target_include_directories(test_appendix_a7_heat_compensation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_heat_compensation)
-add_executable(test_appendix_a7_full_schedule tests/appendix_a7_full_schedule.cpp)
-target_include_directories(test_appendix_a7_full_schedule PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_full_schedule)
-add_executable(test_appendix_a7_schedule_scales tests/appendix_a7_schedule_scales.cpp)
-target_include_directories(test_appendix_a7_schedule_scales PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_schedule_scales)
-add_executable(test_appendix_a7_log_discrepancy tests/appendix_a7_log_discrepancy.cpp)
-target_include_directories(test_appendix_a7_log_discrepancy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_log_discrepancy)
-add_executable(test_appendix_a7_log_compensation tests/appendix_a7_log_compensation.cpp)
-target_include_directories(test_appendix_a7_log_compensation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_log_compensation)
-add_executable(test_appendix_a7_full_recovery tests/appendix_a7_full_recovery.cpp)
-target_include_directories(test_appendix_a7_full_recovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_a7_full_recovery)
-add_executable(test_appendix_b_axis tests/appendix_b_axis.cpp)
-target_include_directories(test_appendix_b_axis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_axis)
-add_executable(test_appendix_b_endpoint_interval tests/appendix_b_endpoint_interval.cpp)
-target_include_directories(test_appendix_b_endpoint_interval PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_endpoint_interval)
-add_executable(test_appendix_b_coefficient_space tests/appendix_b_coefficient_space.cpp)
-target_include_directories(test_appendix_b_coefficient_space PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_coefficient_space)
-add_executable(test_appendix_b_contraction tests/appendix_b_contraction.cpp)
-target_include_directories(test_appendix_b_contraction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_contraction)
-add_executable(test_appendix_b_nonlinear_remainder tests/appendix_b_nonlinear_remainder.cpp)
-target_include_directories(test_appendix_b_nonlinear_remainder PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_nonlinear_remainder)
-add_executable(test_appendix_b_proposition_b2_certificate tests/appendix_b_proposition_b2_certificate.cpp)
-target_include_directories(test_appendix_b_proposition_b2_certificate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_proposition_b2_certificate)
-add_executable(test_appendix_b_proposition_b3_certificate tests/appendix_b_proposition_b3_certificate.cpp)
-target_include_directories(test_appendix_b_proposition_b3_certificate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-enable_project_warnings(test_appendix_b_proposition_b3_certificate)
-add_executable(test_divergence_free_projection tests/divergence_free_projection.cpp)
-enable_project_warnings(test_divergence_free_projection)
-add_executable(test_dealiasing_2_3 tests/dealiasing_2_3.cpp)
-enable_project_warnings(test_dealiasing_2_3)
-add_executable(test_viscous_decay tests/viscous_decay.cpp)
-enable_project_warnings(test_viscous_decay)
-add_executable(test_taylor_green tests/taylor_green_regression.cpp)
-enable_project_warnings(test_taylor_green)
-
-add_test(NAME core_scaling_regression COMMAND test_core_scaling)
-add_test(NAME similarity_coordinates_regression COMMAND test_similarity_coordinates)
-add_test(NAME similarity_operators_regression COMMAND test_similarity_operators)
-add_test(NAME leading_profile_relations_regression COMMAND test_leading_profile_relations)
-add_test(NAME leading_stress_regression COMMAND test_leading_stress)
-add_test(NAME leading_field_axis_regression COMMAND test_leading_field_axis)
-add_test(NAME moment_corrections_regression COMMAND test_moment_corrections)
-add_test(NAME profile_moment_patch_regression COMMAND test_profile_moment_patch)
-add_test(NAME outer_profile_stages_regression COMMAND test_outer_profile_stages)
-add_test(NAME appendix_a3_closure_regression COMMAND test_appendix_a3_closure)
-add_test(NAME appendix_a3_global_regression COMMAND test_appendix_a3_global)
-add_test(NAME appendix_a4_pressure_regression COMMAND test_appendix_a4_pressure)
-add_test(NAME appendix_a6_heat_regression COMMAND test_appendix_a6_heat)
-add_test(NAME appendix_a7_heat_compensation_regression COMMAND test_appendix_a7_heat_compensation)
-add_test(NAME appendix_a7_full_schedule_regression COMMAND test_appendix_a7_full_schedule)
-add_test(NAME appendix_a7_schedule_scales_regression COMMAND test_appendix_a7_schedule_scales)
-add_test(NAME appendix_a7_log_discrepancy_regression COMMAND test_appendix_a7_log_discrepancy)
-add_test(NAME appendix_a7_log_compensation_regression COMMAND test_appendix_a7_log_compensation)
-add_test(NAME appendix_a7_full_recovery_regression COMMAND test_appendix_a7_full_recovery)
-add_test(NAME appendix_b_axis_regression COMMAND test_appendix_b_axis)
-add_test(NAME appendix_b_endpoint_interval_regression COMMAND test_appendix_b_endpoint_interval)
-add_test(NAME appendix_b_coefficient_space_regression COMMAND test_appendix_b_coefficient_space)
-add_test(NAME appendix_b_contraction_regression COMMAND test_appendix_b_contraction)
-add_test(NAME appendix_b_nonlinear_remainder_regression COMMAND test_appendix_b_nonlinear_remainder)
-add_test(NAME appendix_b_proposition_b2_certificate_regression COMMAND test_appendix_b_proposition_b2_certificate)
-add_test(NAME appendix_b_proposition_b3_certificate_regression COMMAND test_appendix_b_proposition_b3_certificate)
+set(NS_TESTS
+ core_scaling:test_core_scaling.cpp
+ similarity_coordinates:similarity_coordinates.cpp
+ similarity_operators:similarity_operators.cpp
+ leading_profile_relations:leading_profile_relations.cpp
+ leading_stress:leading_stress.cpp
+ leading_field_axis:leading_field_axis.cpp
+ moment_corrections:moment_corrections.cpp
+ profile_moment_patch:profile_moment_patch.cpp
+ outer_profile_stages:outer_profile_stages.cpp
+ appendix_a3_closure:appendix_a3_closure.cpp
+ appendix_a3_global:appendix_a3_global.cpp
+ appendix_a4_pressure:appendix_a4_pressure.cpp
+ appendix_a6_heat:appendix_a6_heat.cpp
+ appendix_a7_heat_compensation:appendix_a7_heat_compensation.cpp
+ appendix_a7_full_schedule:appendix_a7_full_schedule.cpp
+ appendix_a7_schedule_scales:appendix_a7_schedule_scales.cpp
+ appendix_a7_log_discrepancy:appendix_a7_log_discrepancy.cpp
+ appendix_a7_log_compensation:appendix_a7_log_compensation.cpp
+ appendix_a7_full_recovery:appendix_a7_full_recovery.cpp
+ appendix_b_axis:appendix_b_axis.cpp
+ appendix_b_endpoint_interval:appendix_b_endpoint_interval.cpp
+ appendix_b_Z_interval:appendix_b_Z_interval.cpp
+ appendix_b_coefficient_space:appendix_b_coefficient_space.cpp
+ appendix_b_contraction:appendix_b_contraction.cpp
+ appendix_b_nonlinear_remainder:appendix_b_nonlinear_remainder.cpp
+ appendix_b_proposition_b2_certificate:appendix_b_proposition_b2_certificate.cpp
+ appendix_b_proposition_b3_certificate:appendix_b_proposition_b3_certificate.cpp
+ divergence_free_projection:divergence_free_projection.cpp
+ dealiasing_2_3:dealiasing_2_3.cpp
+ viscous_decay:viscous_decay.cpp
+ taylor_green:taylor_green_regression.cpp)
+foreach(pair IN LISTS NS_TESTS)
+ string(REPLACE ":" ";" fields "${pair}")
+ list(GET fields 0 name)
+ list(GET fields 1 file)
+ add_executable(test_${name} tests/${file})
+ if(NOT name STREQUAL "core_scaling" AND NOT name STREQUAL "divergence_free_projection" AND NOT name STREQUAL "dealiasing_2_3" AND NOT name STREQUAL "viscous_decay" AND NOT name STREQUAL "taylor_green")
+  target_include_directories(test_${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ endif()
+ enable_project_warnings(test_${name})
+ add_test(NAME ${name}_regression COMMAND test_${name})
+endforeach()
 add_test(NAME fourier_diff_1d_regression COMMAND fourier_diff_1d)
-add_test(NAME divergence_free_projection_regression COMMAND test_divergence_free_projection)
-add_test(NAME dealiasing_2_3_regression COMMAND test_dealiasing_2_3)
-add_test(NAME viscous_decay_regression COMMAND test_viscous_decay)
-add_test(NAME taylor_green_regression COMMAND test_taylor_green)
 add_test(NAME fftw_taylor_green_smoke COMMAND fftw_taylor_green 6 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_smoke.csv)
 add_test(NAME taylor_green_snapshot_smoke COMMAND taylor_green_snapshots 8 0.02 0.01 0.1 ${CMAKE_CURRENT_BINARY_DIR}/taylor_green_snapshots_smoke.csv)
 add_test(NAME fftw_taylor_green_3d_smoke COMMAND fftw_taylor_green_3d 8 0.02 0.01 0.05 ${CMAKE_CURRENT_BINARY_DIR}/fftw_taylor_green_3d_smoke.csv 3)
