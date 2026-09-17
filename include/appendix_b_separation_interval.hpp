@@ -11,7 +11,9 @@ namespace nsblowup {
 
 // Sampling-free B.2 separation certificate used by the B.19 path.
 // A local interval I around the unique central zero of H* is certified to have
-// Z*>2 delta by the A.4 pressure/Z enclosure.  Outside I, the explicit cubic
+// Z*>2 delta by the A.4 pressure/Z enclosure.  If the requested initial I is
+// too wide for that enclosure, it is deterministically bisected until the
+// positivity certificate closes.  Outside the certified I, the explicit cubic
 // H* is bounded away from zero using its endpoints and its two critical points.
 // sigma is then chosen so chi>chi_threshold outside I.  Consequently
 // {chi<=chi_threshold} is contained in I and Z*>2 delta there.
@@ -26,16 +28,30 @@ inline AppendixBSeparationAudit appendix_b_separation_interval_audit(
 
     const double h = std::exp(p.log_h);
     const double eta0 = appendix_b_find_H_zero(p, j0);
-    const double a = std::max(-1.0, eta0 - local_radius);
-    const double b = std::min(1.0, eta0 + local_radius);
 
-    // A strictly positive placeholder delta lets the Z enclosure run; the
-    // certified delta is selected afterwards from its positive lower bound.
-    const auto z = appendix_b_Z_interval_audit(
-        p, a, b, std::numeric_limits<double>::min(), j0, Tf, co, max_step);
-    if (!z.pressure_enclosure_certified || !z.positive_on_interval ||
-        !(z.Z_lower > 0.0))
+    // The pressure enclosure can be substantially sharper on a smaller local
+    // interval.  Shrinking I does not weaken the logical separation argument:
+    // sigma is selected afterwards from the new boundary H minimum, so the
+    // entire chi<=threshold branch remains inside the finally certified I.
+    double radius = local_radius;
+    double a = eta0, b = eta0;
+    AppendixBZIntervalAudit z{};
+    bool z_certified = false;
+    for (int refine = 0; refine < 12; ++refine) {
+        a = std::max(-1.0, eta0 - radius);
+        b = std::min(1.0, eta0 + radius);
+        z = appendix_b_Z_interval_audit(
+            p, a, b, std::numeric_limits<double>::min(), j0, Tf, co, max_step);
+        if (z.pressure_enclosure_certified && z.positive_on_interval &&
+            z.Z_lower > 0.0) {
+            z_certified = true;
+            break;
+        }
+        radius *= 0.5;
+    }
+    if (!z_certified)
         throw std::runtime_error("failed to certify Z*>0 near the H* zero");
+
     const double delta = appendix_b_down(0.5 * z.Z_lower);
     if (!(delta > 0.0)) throw std::runtime_error("nonpositive certified delta");
 
