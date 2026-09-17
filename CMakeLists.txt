@@ -54,6 +54,7 @@ set(NS_TESTS
  appendix_a3_closure:appendix_a3_closure.cpp
  appendix_a3_global:appendix_a3_global.cpp
  appendix_a4_pressure:appendix_a4_pressure.cpp
+ appendix_a4_smooth_step_interval:appendix_a4_smooth_step_interval.cpp
  appendix_a6_heat:appendix_a6_heat.cpp
  appendix_a7_heat_compensation:appendix_a7_heat_compensation.cpp
  appendix_a7_full_schedule:appendix_a7_full_schedule.cpp
