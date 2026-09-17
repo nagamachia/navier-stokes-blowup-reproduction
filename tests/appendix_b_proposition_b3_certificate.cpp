@@ -6,6 +6,7 @@
 #include "appendix_b_pressure_analytic.hpp"
 #include "appendix_b_proposition_b2_certificate.hpp"
 #include "appendix_b_proposition_b3_certificate.hpp"
+#include "appendix_b_separation_interval.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -14,7 +15,10 @@ int main(){
     using namespace nsblowup;
     OuterProfileParameters p; p.lambda=1e-5; p.log_h=-80.0; p.log_Pstar=70.0;
     constexpr double rho=1e-5;
-    const auto sep=appendix_b_separation_audit(p,0.05,20.0,0.05,0.05,121);
+    // Use the interval/pressure-enclosure based separation certificate here so
+    // Proposition B.3 no longer inherits the old eta-sampled B.2 branch split.
+    const auto sep=appendix_b_separation_interval_audit(p,0.05,20.0,0.05,0.01,0.02,0.99);
+    if(!sep.unique_H_zero || !sep.positive_Z_at_H_zero || !sep.chi_separation_certified) return 4;
     const auto scale=appendix_b_lambda_scale_audit(p,0.05,4.1,0.05,20.0,0.05,0.05,81);
     const auto center=appendix_b_Z_over_L_analytic_audit(p,0.05,rho,4*rho,8*rho,4.1,20.0,0.05,0.02);
     const auto op=appendix_b_brho_infinite_alpha_beta_operator_audit(rho);
